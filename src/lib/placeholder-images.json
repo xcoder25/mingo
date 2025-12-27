@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "Abstract network connections representing email delivery",
+      "imageUrl": "https://images.unsplash.com/photo-1667984550708-a6beba23cb4c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxuZXR3b3JrJTIwdGVjaG5vbG9neXxlbnwwfHx8fDE3NjY4NDU3NjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "network technology"
+    }
+  ]
 }
