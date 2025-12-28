@@ -1,0 +1,207 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account within the MingoSMTP application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "User's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "User's last name."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the user account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of when the user account was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Subscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subscription",
+      "type": "object",
+      "description": "Represents a user's subscription to the MingoSMTP service.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the subscription."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Subscription)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Date when the subscription started.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "Date when the subscription ends.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the subscription (e.g., active, inactive, cancelled)."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the subscription"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "startDate",
+        "endDate",
+        "status",
+        "price"
+      ]
+    },
+    "EmailAnalytics": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EmailAnalytics",
+      "type": "object",
+      "description": "Stores email analytics data for users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the email analytics data."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N EmailAnalytics)"
+        },
+        "sent": {
+          "type": "number",
+          "description": "Number of emails sent."
+        },
+        "delivered": {
+          "type": "number",
+          "description": "Number of emails delivered."
+        },
+        "bounced": {
+          "type": "number",
+          "description": "Number of emails bounced."
+        },
+        "opened": {
+          "type": "number",
+          "description": "Number of emails opened."
+        },
+        "clickThroughRate": {
+          "type": "number",
+          "description": "Click-through rate for emails."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date for which the analytics are recorded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "sent",
+        "delivered",
+        "bounced",
+        "opened",
+        "clickThroughRate",
+        "date"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  Path-based ownership ensures only the authenticated user can access their own profile. Includes denormalized 'userId' as '{userId}'.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/subscriptions/{subscriptionId}",
+        "definition": {
+          "entityName": "Subscription",
+          "schema": {
+            "$ref": "#/backend/entities/Subscription"
+          },
+          "description": "Stores user subscription information. Path-based ownership inherited from `/users/{userId}` ensures only the authenticated user can access their subscriptions. Includes denormalized 'userId' as '{userId}'.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "subscriptionId",
+              "description": "The unique identifier for the subscription."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/email_analytics/{emailAnalyticsId}",
+        "definition": {
+          "entityName": "EmailAnalytics",
+          "schema": {
+            "$ref": "#/backend/entities/EmailAnalytics"
+          },
+          "description": "Stores email analytics data for each user. Path-based ownership inherited from `/users/{userId}` ensures only the authenticated user can access their analytics data. Includes denormalized 'userId' as '{userId}'.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "emailAnalyticsId",
+              "description": "The unique identifier for the email analytics data."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be secure, scalable, and easily debuggable, adhering to the core principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It emphasizes denormalization for authorization independence and structural segregation for simplified security rules.\n\n1.  **Authorization Independence:**\n    *   User-owned data is stored under `/users/{userId}`. This makes ownership explicit and avoids the need for `get()` calls in security rules, crucial for atomic operations and scalability.\n\n2.  **Clarity of Intent:**\n    *   Paths are named semantically, representing a 1:N relationship, such as `/users/{userId}/subscriptions/{subscriptionId}` and `/users/{userId}/email_analytics/{emailAnalyticsId}`.\n\n3.  **DBAC (No Custom Claims):**\n    *   Authorization is based on `request.auth.uid`, aligning with the user ID used in the data structure.\n\n4.  **QAPs (Rules are not Filters):**\n    *   Data segregation ensures that listing operations are inherently secure. Listing `/users/{userId}/subscriptions` will only return subscriptions owned by that user, preventing unauthorized access.\n\n**Denormalization Strategy:**\nSince no collaborative data or complex roles are present, denormalization is primarily focused on maintaining authorization independence for user-owned data. Each document under a user's path implicitly inherits the user's ownership.\n\n**Structural Segregation:**\nUser data is segregated into collections under `/users/{userId}`, ensuring that all documents within those collections share the same security requirements (i.e., accessible only to the user with the matching `userId`).\n\n**Access Modeling:**\n*   Private User Data: Path-based ownership using `/users/{userId}`.\n*   User:Subscription (1:N): `/users/{userId}/subscriptions/{subscriptionId}`.\n*   User:EmailAnalytics (1:N): `/users/{userId}/email_analytics/{emailAnalyticsId}`."
+  }
+}

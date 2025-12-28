@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePaystackPayment } from 'react-paystack';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -17,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
 
 type Currency = {
@@ -36,8 +38,8 @@ type Plan = {
 };
 
 const currencies: Currency[] = [
-  { code: 'USD', name: 'United States Dollar', symbol: '$', rate: 1 },
   { code: 'NGN', name: 'Nigerian Naira', symbol: '₦', rate: 1500 },
+  { code: 'USD', name: 'United States Dollar', symbol: '$', rate: 1 },
   { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.8 },
 ];
 
@@ -86,6 +88,7 @@ export default function SubscriptionPage() {
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(
     currencies[0]
   );
+  const { toast } = useToast();
 
   const handleCurrencyChange = (currencyCode: string) => {
     const currency = currencies.find((c) => c.code === currencyCode);
@@ -101,6 +104,38 @@ export default function SubscriptionPage() {
       currency: selectedCurrency.code,
       minimumFractionDigits: 2,
     }).format(convertedPrice);
+  };
+  
+  const PaystackButton = ({ plan }: { plan: Plan }) => {
+    const config = {
+      reference: new Date().getTime().toString(),
+      email: 'user@mingo.com',
+      amount: Math.round(plan.priceUSD * selectedCurrency.rate * 100), // Amount in kobo/cents
+      publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+      currency: selectedCurrency.code,
+    };
+
+    const initializePayment = usePaystackPayment(config);
+
+    const onSuccess = () => {
+      toast({
+        title: 'Payment Successful!',
+        description: `Your subscription to the ${plan.name} plan is now active.`,
+      });
+    };
+
+    const onClose = () => {
+      // implementation for  whatever you want to do when the Paystack dialog closed.
+      console.log('closed');
+    };
+
+    return (
+      <Button className="w-full" onClick={() => initializePayment({onSuccess, onClose})}>
+        {plan.priceUSD > (plans.find((p) => p.isCurrent)?.priceUSD || 0)
+          ? 'Upgrade'
+          : 'Downgrade'}
+      </Button>
+    );
   };
 
   return (
@@ -171,12 +206,7 @@ export default function SubscriptionPage() {
                       Manage Plan
                     </Button>
                   ) : (
-                    <Button className="w-full">
-                      {plan.priceUSD >
-                      (plans.find((p) => p.isCurrent)?.priceUSD || 0)
-                        ? 'Upgrade'
-                        : 'Downgrade'}
-                    </Button>
+                    <PaystackButton plan={plan} />
                   )}
                 </CardFooter>
               </Card>
