@@ -15,12 +15,33 @@ import { Button } from '@/components/ui/button';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { Logo } from '@/components/logo';
 import { LogOut, Settings } from 'lucide-react';
+import { useAuth, useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+  
+  if (isUserLoading || !user) {
+    return null; // Or a loading spinner
+  }
+
+  const handleLogout = () => {
+    auth.signOut();
+  };
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -38,18 +59,16 @@ export default function DashboardLayout({
             <div className="flex items-center gap-2 rounded-md p-2 bg-secondary">
               <Avatar className="h-9 w-9">
                 <AvatarImage src="https://picsum.photos/seed/avatar/40/40" alt="@user" data-ai-hint="avatar" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>{user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="text-sm font-medium">User</span>
-                <span className="text-xs text-muted-foreground">user@mingo.com</span>
+                <span className="text-sm font-medium">{user.displayName || 'User'}</span>
+                <span className="text-xs text-muted-foreground">{user.email}</span>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start gap-2" asChild>
-              <Link href="/login">
+            <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
                 <LogOut />
                 <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-              </Link>
             </Button>
           </div>
         </SidebarFooter>
@@ -64,7 +83,7 @@ export default function DashboardLayout({
                 </Button>
                 <Avatar className="h-9 w-9">
                     <AvatarImage src="https://picsum.photos/seed/avatar/40/40" alt="@user" data-ai-hint="avatar" />
-                    <AvatarFallback>U</AvatarFallback>
+                    <AvatarFallback>{user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
             </div>
         </header>
