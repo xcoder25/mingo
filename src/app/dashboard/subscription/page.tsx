@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
+import { useUser } from '@/firebase';
 
 type Currency = {
   code: 'USD' | 'NGN' | 'GBP';
@@ -82,9 +83,43 @@ const plans: Plan[] = [
       'Team Management',
     ],
   },
+  {
+    id: 'growth',
+    name: 'Mingo Growth',
+    description: 'For businesses ready to scale.',
+    priceUSD: 399,
+    features: [
+      'Everything in Enterprise',
+      'Priority API Access',
+      'Dedicated Account Manager',
+    ],
+  },
+  {
+    id: 'scale',
+    name: 'Mingo Scale',
+    description: 'For high-volume senders.',
+    priceUSD: 599,
+    features: [
+      'Everything in Growth',
+      'Custom IP Allocation',
+      'Quarterly Business Reviews',
+    ],
+  },
+  {
+    id: 'ultimate',
+    name: 'Mingo Ultimate',
+    description: 'For maximum performance.',
+    priceUSD: 999,
+    features: [
+      'Everything in Scale',
+      '24/7 Premium Support',
+      'Custom Feature Development',
+    ],
+  },
 ];
 
 export default function SubscriptionPage() {
+  const { user } = useUser();
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(
     currencies[0]
   );
@@ -109,9 +144,9 @@ export default function SubscriptionPage() {
   const PaystackButton = ({ plan }: { plan: Plan }) => {
     const config = {
       reference: new Date().getTime().toString(),
-      email: 'user@mingo.com',
+      email: user?.email || '',
       amount: Math.round(plan.priceUSD * selectedCurrency.rate * 100), // Amount in kobo/cents
-      publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+      publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_live_730da1a9a36e9a1752a4be31992ba6354bf7e74a',
       currency: selectedCurrency.code,
     };
 
@@ -129,9 +164,11 @@ export default function SubscriptionPage() {
       console.log('closed');
     };
 
+    const currentPlanPrice = plans.find((p) => p.isCurrent)?.priceUSD || 0;
+
     return (
       <Button className="w-full" onClick={() => initializePayment({onSuccess, onClose})}>
-        {plan.priceUSD > (plans.find((p) => p.isCurrent)?.priceUSD || 0)
+        {plan.priceUSD > currentPlanPrice
           ? 'Upgrade'
           : 'Downgrade'}
       </Button>
