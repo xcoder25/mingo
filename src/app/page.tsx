@@ -113,7 +113,7 @@ export default function Home() {
                   <CardTitle className="text-2xl">Mingo Pro</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                  <div className="text-4xl font-bold">$23,534.65<span className="text-lg font-normal text-muted-foreground">/year</span></div>
+                  <div className="text-4xl font-bold">₦148,500<span className="text-lg font-normal text-muted-foreground">/month</span></div>
                   <ul className="grid gap-2 text-left text-sm text-muted-foreground">
                     <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Unlimited Email Sends</li>
                     <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Full Analytics Suite</li>
