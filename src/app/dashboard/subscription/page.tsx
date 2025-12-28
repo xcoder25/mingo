@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { doc, serverTimestamp } from 'firebase/firestore';
 
 type Currency = {
   code: 'USD' | 'NGN' | 'GBP';
@@ -35,7 +36,6 @@ type Plan = {
   description: string;
   priceUSD: number;
   features: string[];
-  isCurrent?: boolean;
 };
 
 const currencies: Currency[] = [
@@ -59,7 +59,7 @@ const plans: Plan[] = [
   {
     id: 'pro',
     name: 'Mingo Pro',
-    description: 'Your current plan. For growing businesses.',
+    description: 'For growing businesses.',
     priceUSD: 99,
     features: [
       'Unlimited Email Sends',
@@ -67,7 +67,6 @@ const plans: Plan[] = [
       'AI Delivery Optimizer',
       'Dedicated Support',
     ],
-    isCurrent: true,
   },
   {
     id: 'enterprise',
@@ -83,43 +82,12 @@ const plans: Plan[] = [
       'Team Management',
     ],
   },
-  {
-    id: 'growth',
-    name: 'Mingo Growth',
-    description: 'For businesses ready to scale.',
-    priceUSD: 399,
-    features: [
-      'Everything in Enterprise',
-      'Priority API Access',
-      'Dedicated Account Manager',
-    ],
-  },
-  {
-    id: 'scale',
-    name: 'Mingo Scale',
-    description: 'For high-volume senders.',
-    priceUSD: 599,
-    features: [
-      'Everything in Growth',
-      'Custom IP Allocation',
-      'Quarterly Business Reviews',
-    ],
-  },
-  {
-    id: 'ultimate',
-    name: 'Mingo Ultimate',
-    description: 'For maximum performance.',
-    priceUSD: 999,
-    features: [
-      'Everything in Scale',
-      '24/7 Premium Support',
-      'Custom Feature Development',
-    ],
-  },
 ];
+
 
 export default function SubscriptionPage() {
   const { user } = useUser();
+  const firestore = useFirestore();
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(
     currencies[0]
   );
@@ -146,13 +114,31 @@ export default function SubscriptionPage() {
       reference: new Date().getTime().toString(),
       email: user?.email || '',
       amount: Math.round(plan.priceUSD * selectedCurrency.rate * 100), // Amount in kobo/cents
-      publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_live_730da1a9a36e9a1752a4be31992ba6354bf7e74a',
+      publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_test_a68285a855938575510b644f7724ffe8c79af8c0',
       currency: selectedCurrency.code,
     };
 
     const initializePayment = usePaystackPayment(config);
 
     const onSuccess = () => {
+      if (!user || !firestore) return;
+
+      const subscriptionRef = doc(firestore, `users/${user.uid}/subscriptions`, plan.id);
+      
+      const subscriptionData = {
+        id: plan.id,
+        userId: user.uid,
+        status: 'active',
+        planName: plan.name,
+        price: plan.priceUSD,
+        currency: selectedCurrency.code,
+        startDate: serverTimestamp(),
+        endDate: null, // or calculate based on subscription duration
+        createdAt: serverTimestamp(),
+      };
+      
+      setDocumentNonBlocking(subscriptionRef, subscriptionData, { merge: true });
+
       toast({
         title: 'Payment Successful!',
         description: `Your subscription to the ${plan.name} plan is now active.`,
@@ -160,17 +146,12 @@ export default function SubscriptionPage() {
     };
 
     const onClose = () => {
-      // implementation for  whatever you want to do when the Paystack dialog closed.
       console.log('closed');
     };
 
-    const currentPlanPrice = plans.find((p) => p.isCurrent)?.priceUSD || 0;
-
     return (
       <Button className="w-full" onClick={() => initializePayment({onSuccess, onClose})}>
-        {plan.priceUSD > currentPlanPrice
-          ? 'Upgrade'
-          : 'Downgrade'}
+        Choose Plan
       </Button>
     );
   };
@@ -208,15 +189,10 @@ export default function SubscriptionPage() {
             {plans.map((plan) => (
               <Card
                 key={plan.id}
-                className={`flex flex-col ${
-                  plan.isCurrent ? 'border-primary ring-2 ring-primary' : ''
-                }`}
+                className="flex flex-col"
               >
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
-                    {plan.isCurrent && (
-                      <Zap className="h-6 w-6 text-primary" />
-                    )}
                     <CardTitle>{plan.name}</CardTitle>
                   </div>
                   <CardDescription>{plan.description}</CardDescription>
@@ -238,13 +214,7 @@ export default function SubscriptionPage() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  {plan.isCurrent ? (
-                    <Button variant="outline" className="w-full">
-                      Manage Plan
-                    </Button>
-                  ) : (
-                    <PaystackButton plan={plan} />
-                  )}
+                  <PaystackButton plan={plan} />
                 </CardFooter>
               </Card>
             ))}

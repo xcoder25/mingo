@@ -1,12 +1,21 @@
 diff --git a/node_modules/react-paystack/package.json b/node_modules/react-paystack/package.json
-index 2768133..685509e 100644
+index 5e63869..a521f75 100644
 --- a/node_modules/react-paystack/package.json
 +++ b/node_modules/react-paystack/package.json
-@@ -70,6 +70,6 @@
+@@ -91,10 +91,10 @@
+     "url": "https://github.com/PaystackHQ/react-paystack/issues"
    },
    "peerDependencies": {
-     "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0",
+-    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0",
 -    "react-dom": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0"
++    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
 +    "react-dom": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
-   }
+   },
+   "resolutions": {
+-    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0",
+-    "react-dom": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0"
++    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
++    "react-dom": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+   },
+   "gitHead": "16543085521b4a0f443b3b2c14b62a6797a7a58a"
  }

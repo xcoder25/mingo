@@ -14,15 +14,12 @@ import {
 } from '@/components/ui/chart';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { Mail, CheckCircle, AlertCircle, Eye, MousePointerClick } from 'lucide-react';
-
-const chartData = [
-  { month: 'January', sent: 18600, delivered: 18000, opened: 15000 },
-  { month: 'February', sent: 30500, delivered: 29000, opened: 22000 },
-  { month: 'March', sent: 23700, delivered: 22500, opened: 19000 },
-  { month: 'April', sent: 27300, delivered: 26000, opened: 21000 },
-  { month: 'May', sent: 20900, delivered: 19900, opened: 17000 },
-  { month: 'June', sent: 21400, delivered: 20500, opened: 18000 },
-];
+import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import type { WithId } from '@/firebase';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { useMemo } from 'react';
+import type { EmailAnalytics } from '@/lib/types';
+import { format, parseISO } from 'date-fns';
 
 const chartConfig = {
   sent: {
@@ -40,6 +37,64 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const analyticsQuery = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return query(
+      collection(firestore, `users/${user.uid}/email_analytics`),
+      orderBy('date', 'desc'),
+      limit(6)
+    );
+  }, [firestore, user?.uid]);
+
+  const { data: analyticsData, isLoading } = useCollection<EmailAnalytics>(analyticsQuery);
+
+  const { chartData, totals, percentages } = useMemo(() => {
+    if (!analyticsData) {
+      return { chartData: [], totals: {}, percentages: {} };
+    }
+
+    const reversedData = [...analyticsData].reverse();
+
+    const chartData = reversedData.map((item) => ({
+      month: format(parseISO(item.date), 'MMM'), // format date to month abbreviation
+      sent: item.sent,
+      delivered: item.delivered,
+      opened: item.opened,
+    }));
+
+    const totals = analyticsData.reduce(
+      (acc, curr) => {
+        acc.sent += curr.sent;
+        acc.delivered += curr.delivered;
+        acc.bounced += curr.bounced;
+        acc.opened += curr.opened;
+        return acc;
+      },
+      { sent: 0, delivered: 0, bounced: 0, opened: 0, clickThrough: 0 }
+    );
+    
+    // This is a simplified calculation for CTR for the last data point
+    const lastClickThrough = analyticsData[0]?.clickThroughRate || 0;
+    totals.clickThrough = lastClickThrough;
+
+
+    const percentages = {
+      delivered: totals.sent > 0 ? (totals.delivered / totals.sent) * 100 : 0,
+      bounced: totals.sent > 0 ? (totals.bounced / totals.sent) * 100 : 0,
+      opened: totals.delivered > 0 ? (totals.opened / totals.delivered) * 100 : 0,
+    };
+
+    return { chartData, totals, percentages };
+  }, [analyticsData]);
+  
+
+  if (isLoading) {
+    return <div>Loading dashboard...</div>
+  }
+
   return (
     <div className="grid gap-4 md:gap-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -49,8 +104,8 @@ export default function DashboardPage() {
                     <Mail className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">45,231</div>
-                    <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                    <div className="text-2xl font-bold">{totals.sent?.toLocaleString() || '0'}</div>
+                    <p className="text-xs text-muted-foreground">Total emails processed</p>
                 </CardContent>
             </Card>
             <Card>
@@ -59,8 +114,8 @@ export default function DashboardPage() {
                     <CheckCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">44,890 (99.2%)</div>
-                    <p className="text-xs text-muted-foreground">+0.5% from last month</p>
+                    <div className="text-2xl font-bold">{totals.delivered?.toLocaleString() || '0'} ({percentages.delivered?.toFixed(1) || '0'}%)</div>
+                    <p className="text-xs text-muted-foreground">Successfully reached inbox</p>
                 </CardContent>
             </Card>
             <Card>
@@ -69,8 +124,8 @@ export default function DashboardPage() {
                     <AlertCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">341 (0.8%)</div>
-                    <p className="text-xs text-muted-foreground">-0.2% from last month</p>
+                    <div className="text-2xl font-bold">{totals.bounced?.toLocaleString() || '0'} ({percentages.bounced?.toFixed(1) || '0'}%)</div>
+                    <p className="text-xs text-muted-foreground">Failed deliveries</p>
                 </CardContent>
             </Card>
             <Card>
@@ -79,8 +134,8 @@ export default function DashboardPage() {
                     <Eye className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">35.7%</div>
-                    <p className="text-xs text-muted-foreground">+3.1% from last month</p>
+                    <div className="text-2xl font-bold">{percentages.opened?.toFixed(1) || '0'}%</div>
+                    <p className="text-xs text-muted-foreground">Based on delivered emails</p>
                 </CardContent>
             </Card>
             <Card>
@@ -89,8 +144,8 @@ export default function DashboardPage() {
                     <MousePointerClick className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">4.9%</div>
-                    <p className="text-xs text-muted-foreground">+0.8% from last month</p>
+                    <div className="text-2xl font-bold">{totals.clickThrough?.toFixed(1) || '0'}%</div>
+                    <p className="text-xs text-muted-foreground">Latest campaign CTR</p>
                 </CardContent>
             </Card>
         </div>
@@ -115,7 +170,6 @@ export default function DashboardPage() {
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={8}
-                                tickFormatter={(value) => value.slice(0, 3)}
                             />
                             <YAxis
                               tickLine={false}

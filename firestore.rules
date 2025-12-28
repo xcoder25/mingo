@@ -110,36 +110,48 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isCreatingOwnUserDocument(userId);
       allow update: if isExistingOwner(userId) && isUpdatingOwnUserDocument();
       allow delete: if isExistingOwner(userId);
-    }
 
-    /**
-     * @description Manages a user's subscription records.
-     * @path /users/{userId}/subscriptions/{subscriptionId}
-     * @allow (create) An authenticated user can create a subscription document for themselves.
-     * @deny (get) An authenticated user cannot access subscriptions belonging to another user.
-     * @principle Enforces document ownership for all operations within a user-specific subcollection.
-     */
-    match /users/{userId}/subscriptions/{subscriptionId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && isCreatingChildDocument(userId);
-      allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
-      allow delete: if isExistingOwner(userId);
-    }
+      /**
+       * @description Manages a user's subscription records.
+       * @path /users/{userId}/subscriptions/{subscriptionId}
+       * @allow (create) An authenticated user can create a subscription document for themselves.
+       * @deny (get) An authenticated user cannot access subscriptions belonging to another user.
+       * @principle Enforces document ownership for all operations within a user-specific subcollection.
+       */
+      match /subscriptions/{subscriptionId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
+        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
+        allow delete: if isExistingOwner(userId);
+      }
 
-    /**
-     * @description Manages a user's email analytics data.
-     * @path /users/{userId}/email_analytics/{emailAnalyticsId}
-     * @allow (list) An authenticated user can list their own email analytics records.
-     * @deny (update) An authenticated user cannot update analytics data belonging to another user.
-     * @principle Enforces document ownership and validates relational integrity between parent and child documents.
-     */
-    match /users/{userId}/email_analytics/{emailAnalyticsId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && isCreatingChildDocument(userId);
-      allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
-      allow delete: if isExistingOwner(userId);
+      /**
+       * @description Manages a user's email analytics data.
+       * @path /users/{userId}/email_analytics/{emailAnalyticsId}
+       * @allow (list) An authenticated user can list their own email analytics records.
+       * @deny (update) An authenticated user cannot update analytics data belonging to another user.
+       * @principle Enforces document ownership and validates relational integrity between parent and child documents.
+       */
+      match /email_analytics/{emailAnalyticsId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
+        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
+        allow delete: if isExistingOwner(userId);
+      }
+      
+      /**
+       * @description Manages a user's sender domains.
+       * @path /users/{userId}/senders/{senderId}
+       */
+      match /senders/{senderId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
+        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
+        allow delete: if isExistingOwner(userId);
+      }
     }
   }
 }

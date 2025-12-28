@@ -15,9 +15,12 @@ import { Button } from '@/components/ui/button';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { Logo } from '@/components/logo';
 import { LogOut, Settings } from 'lucide-react';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { collection } from 'firebase/firestore';
+import type { Subscription } from '@/lib/types';
+
 
 export default function DashboardLayout({
   children,
@@ -26,21 +29,38 @@ export default function DashboardLayout({
 }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
+
+  const subscriptionsQuery = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return collection(firestore, `users/${user.uid}/subscriptions`);
+  }, [firestore, user?.uid]);
+
+  const { data: subscriptions, isLoading: isSubscriptionLoading } = useCollection<Subscription>(subscriptionsQuery);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
+
+  useEffect(() => {
+    if (!isSubscriptionLoading && (!subscriptions || subscriptions.length === 0)) {
+        router.push('/dashboard/subscription');
+    }
+  }, [subscriptions, isSubscriptionLoading, router]);
   
-  if (isUserLoading || !user) {
+  if (isUserLoading || !user || isSubscriptionLoading) {
     return null; // Or a loading spinner
   }
 
   const handleLogout = () => {
     auth.signOut();
   };
+  
+  const activeSubscription = subscriptions?.find(s => s.status === 'active');
+
 
   return (
     <SidebarProvider>
