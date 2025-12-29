@@ -4,7 +4,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user account within the MingoSMTP application.",
+      "description": "Represents a user of the MingoSMTP service.",
       "properties": {
         "id": {
           "type": "string",
@@ -23,15 +23,9 @@
           "type": "string",
           "description": "User's last name."
         },
-        "createdAt": {
+        "subscriptionId": {
           "type": "string",
-          "description": "Timestamp of when the user account was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp of when the user account was last updated.",
-          "format": "date-time"
+          "description": "Reference to the user's Subscription. (Relationship: User 1:1 Subscription)"
         }
       },
       "required": [
@@ -39,8 +33,7 @@
         "email",
         "firstName",
         "lastName",
-        "createdAt",
-        "updatedAt"
+        "subscriptionId"
       ]
     },
     "Subscription": {
@@ -53,50 +46,51 @@
           "type": "string",
           "description": "Unique identifier for the subscription."
         },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Subscription)"
-        },
         "startDate": {
           "type": "string",
-          "description": "Date when the subscription started.",
+          "description": "The date the subscription started.",
           "format": "date-time"
         },
         "endDate": {
           "type": "string",
-          "description": "Date when the subscription ends.",
+          "description": "The date the subscription ends.",
           "format": "date-time"
+        },
+        "renewalDate": {
+          "type": "string",
+          "description": "The date the subscription is set to renew.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount that is billed annually for the subscription."
         },
         "status": {
           "type": "string",
-          "description": "Status of the subscription (e.g., active, inactive, cancelled)."
-        },
-        "price": {
-          "type": "number",
-          "description": "Price of the subscription"
+          "description": "The status of the subscription (e.g., active, inactive, canceled)."
         }
       },
       "required": [
         "id",
-        "userId",
         "startDate",
-        "status",
-        "price"
+        "endDate",
+        "amount",
+        "status"
       ]
     },
     "EmailAnalytics": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "EmailAnalytics",
       "type": "object",
-      "description": "Stores email analytics data for users.",
+      "description": "Represents email sending analytics for a user.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the email analytics data."
+          "description": "Unique identifier for the analytics record."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N EmailAnalytics)"
+          "description": "Reference to the User. (Relationship: User 1:N EmailAnalytics)"
         },
         "sent": {
           "type": "number",
@@ -120,7 +114,7 @@
         },
         "date": {
           "type": "string",
-          "description": "Date for which the analytics are recorded.",
+          "description": "The date of the email analytics record.",
           "format": "date-time"
         }
       },
@@ -134,95 +128,12 @@
         "clickThroughRate",
         "date"
       ]
-    },
-    "Sender": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Sender",
-      "type": "object",
-      "description": "Represents a sender domain for a user.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the sender."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Sender)"
-        },
-        "domain": {
-          "type": "string",
-          "description": "The domain name."
-        },
-        "status": {
-          "type": "string",
-          "enum": ["pending", "verified", "failed"],
-          "description": "Verification status of the domain."
-        },
-        "spfRecord": {
-            "type": "string"
-        },
-        "dkimRecord": {
-            "type": "string"
-        },
-        "dmarcRecord": {
-            "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp of when the sender was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "domain",
-        "status",
-        "createdAt"
-      ]
-    },
-    "ApiKey": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ApiKey",
-      "type": "object",
-      "description": "Represents a user's API key for programmatic access.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the API key."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User."
-        },
-        "name": {
-          "type": "string",
-          "description": "A user-defined name for the key."
-        },
-        "key": {
-          "type": "string",
-          "description": "The API key value (should be hashed in a real app)."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp of when the key was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "name",
-        "key",
-        "createdAt"
-      ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "phone"
+      "anonymous"
     ]
   },
   "firestore": {
@@ -234,7 +145,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles.  Path-based ownership ensures only the authenticated user can access their own profile. Includes denormalized 'userId' as '{userId}'.",
+          "description": "Stores user profiles. Uses path-based ownership for security. Each user document is only accessible to the corresponding authenticated user.",
           "params": [
             {
               "name": "userId",
@@ -244,86 +155,42 @@
         }
       },
       {
-        "path": "/users/{userId}/subscriptions/{subscriptionId}",
+        "path": "/users/{userId}/analytics/{analyticsId}",
         "definition": {
-          "entityName": "Subscription",
+          "entityName": "EmailAnalytics",
           "schema": {
-            "$ref": "#/backend/entities/Subscription"
+            "$ref": "#/backend/entities/EmailAnalytics"
           },
-          "description": "Stores user subscription information. Path-based ownership inherited from `/users/{userId}` ensures only the authenticated user can access their subscriptions. Includes denormalized 'userId' as '{userId}'.",
+          "description": "Stores email analytics for each user. Uses path-based ownership for security. Each analytics document is only accessible to the corresponding authenticated user.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier for the user."
             },
+            {
+              "name": "analyticsId",
+              "description": "The unique identifier for the email analytics record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subscriptions/{subscriptionId}",
+        "definition": {
+          "entityName": "Subscription",
+          "schema": {
+            "$ref": "#/backend/entities/Subscription"
+          },
+          "description": "Stores subscription information. Each subscription document is only accessible to administrators or the user associated with the subscription. Note: The user is associated with the subscription through the User entity, specifically User.subscriptionId.",
+          "params": [
             {
               "name": "subscriptionId",
               "description": "The unique identifier for the subscription."
             }
           ]
         }
-      },
-      {
-        "path": "/users/{userId}/email_analytics/{emailAnalyticsId}",
-        "definition": {
-          "entityName": "EmailAnalytics",
-          "schema": {
-            "$ref": "#/backend/entities/EmailAnalytics"
-          },
-          "description": "Stores email analytics data for each user. Path-based ownership inherited from `/users/{userId}` ensures only the authenticated user can access their analytics data. Includes denormalized 'userId' as '{userId}'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "emailAnalyticsId",
-              "description": "The unique identifier for the email analytics data."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/senders/{senderId}",
-        "definition": {
-          "entityName": "Sender",
-          "schema": {
-            "$ref": "#/backend/entities/Sender"
-          },
-          "description": "Stores sender domains for each user. Path-based ownership inherited from `/users/{userId}` ensures only the authenticated user can access their sender domains. Includes denormalized 'userId' as '{userId}'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "senderId",
-              "description": "The unique identifier for the sender domain."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/apiKeys/{apiKeyId}",
-        "definition": {
-          "entityName": "ApiKey",
-          "schema": {
-            "$ref": "#/backend/entities/ApiKey"
-          },
-          "description": "Stores API keys for each user. Path-based ownership inherited from `/users/{userId}` ensures only the authenticated user can manage their API keys.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "apiKeyId",
-              "description": "The unique identifier for the API key."
-            }
-          ]
-        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to be secure, scalable, and easily debuggable, adhering to the core principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It emphasizes denormalization for authorization independence and structural segregation for simplified security rules.\n\n1.  **Authorization Independence:**\n    *   User-owned data is stored under `/users/{userId}`. This makes ownership explicit and avoids the need for `get()` calls in security rules, crucial for atomic operations and scalability.\n\n2.  **Clarity of Intent:**\n    *   Paths are named semantically, representing a 1:N relationship, such as `/users/{userId}/subscriptions/{subscriptionId}` and `/users/{userId}/email_analytics/{emailAnalyticsId}`.\n\n3.  **DBAC (No Custom Claims):**\n    *   Authorization is based on `request.auth.uid`, aligning with the user ID used in the data structure.\n\n4.  **QAPs (Rules are not Filters):**\n    *   Data segregation ensures that listing operations are inherently secure. Listing `/users/{userId}/subscriptions` will only return subscriptions owned by that user, preventing unauthorized access.\n\n**Denormalization Strategy:**\nSince no collaborative data or complex roles are present, denormalization is primarily focused on maintaining authorization independence for user-owned data. Each document under a user's path implicitly inherits the user's ownership.\n\n**Structural Segregation:**\nUser data is segregated into collections under `/users/{userId}`, ensuring that all documents within those collections share the same security requirements (i.e., accessible only to the user with the matching `userId`).\n\n**Access Modeling:**\n*   Private User Data: Path-based ownership using `/users/{userId}`.\n*   User:Subscription (1:N): `/users/{userId}/subscriptions/{subscriptionId}`.\n*   User:EmailAnalytics (1:N): `/users/{userId}/email_analytics/{emailAnalyticsId}`."
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability. User data and related information are stored in a way that minimizes the need for complex security rules and `get()` calls, promoting atomic operations and easier debugging.\n\n*   **Authorization Independence:** The structure avoids hierarchical authorization dependencies. For example, `EmailAnalytics` are stored under `/users/{userId}/analytics/{analyticsId}`. The rules only need to verify `request.auth.uid == userId` to authorize the operation without reading the parent `User` document. The `Subscription` is associated with the user via the `users/{userId}` document. While not a subcollection, this structure ensures the rules only need to check ownership of the user document to ensure the security of data.\n*   **Structural Segregation:** Each collection serves a distinct purpose with homogeneous security requirements. Private user data is stored under `/users/{userId}`, while subscription data is associated via the `subscriptionId` field within the `User` document.\n*   **Access Modeling:** Path-based ownership is used for user data (`/users/{userId}`), enforcing that only the authenticated user can access their own data.\n*   **QAPs (Rules are not Filters):** The structure supports secure `list` operations. For example, listing analytics for a user is done via `/users/{userId}/analytics`. The rule will verify `request.auth.uid == userId` which makes the `list` operation secure."
   }
 }

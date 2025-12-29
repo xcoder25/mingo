@@ -1,201 +1,96 @@
 /**
- * This Firestore Security Ruleset enforces a strict user-ownership model, designed for
- * applications where user data is private and should never be accessible by other users.
- *
- * Core Philosophy:
- * The security model is centered on "path-based ownership." All user-specific data is
- * stored in subcollections under a document uniquely identified by that user's UID.
- * This ensures that authorization can be determined simply by comparing the requesting
- * user's UID (`request.auth.uid`) with the user ID present in the document path.
+ * Core Philosophy: This ruleset enforces a strict user-ownership model. All data is private and tied directly
+ * to an authenticated user's ID. There are no public collections or global roles; access is granted on a
+ * per-user basis to their own documents and related data.
  *
  * Data Structure:
- * All user-owned data is nested hierarchically under the `/users/{userId}` path. This
- * top-level document stores the user's profile, and subsequent private data, such as
- * subscriptions and analytics, are stored in dedicated subcollections within that user's
- * document tree (e.g., `/users/{userId}/subscriptions/{subscriptionId}`).
+ * - /users/{userId}: The root document for each user, containing their profile information.
+ * - /users/{userId}/analytics/{analyticsId}: A subcollection containing a user's private email analytics.
+ * - /subscriptions/{subscriptionId}: A top-level collection for subscription details. Access is granted by
+ *   verifying that the authenticated user's profile in `/users/{userId}` contains a matching `subscriptionId`.
  *
  * Key Security Decisions:
- * - User Data Isolation: A user can only access documents within their own data tree
- *   (i.e., where the `{userId}` in the path matches their authenticated UID).
- * - No User Enumeration: The ability to list documents in the top-level `/users`
- *   collection is explicitly disabled to prevent malicious actors from discovering
- *   the application's user base.
- * - Relational Integrity: On creation, documents must contain an internal `id` or
- *   `userId` field that matches the `{userId}` in the path. This field is enforced
- *   as immutable on updates to prevent re-linking documents to different owners.
- * - Default Deny: All operations are denied by default. Access is only granted through
- *   explicit `allow` statements.
- *
- * Denormalization for Authorization:
- * The data structure inherently uses denormalization for authorization. By placing
- * all user data under a path containing their UID (`/users/{userId}`), we avoid
- * slow and costly `get()` calls to other documents for ownership verification.
- * This makes the rules fast, scalable, and easy to audit.
- *
- * Structural Segregation:
- * The data model uses structural segregation to separate each user's data into its
- * own document tree. This makes security rules for listing documents simple and safe,
- * as a query against a user's subcollection (e.g., `/users/abc/subscriptions`) can
- * never accidentally leak data belonging to another user.
+ * - Strict User Scoping: All rules are designed around the `isOwner()` principle, ensuring users can only interact
+ *   with their own data tree under `/users/{userId}`.
+ * - No User Enumeration: Listing documents from the top-level `/users` collection is explicitly disallowed to
+ *   protect user privacy.
+ * - Server-Managed Subscriptions: It is assumed that subscriptions are created and managed by a trusted backend
+ *   process (e.g., Cloud Functions). Therefore, direct client-side creation, updates, or deletion of
+ *   `/subscriptions` documents are disabled. Users are only granted read-only (`get`) access to their own
+ *   subscription.
+ * - Lookup-Based Authorization: Access to a `/subscriptions/{subscriptionId}` document requires a `get()` call to
+ *   the user's own `/users/{request.auth.uid}` document to confirm the `subscriptionId` matches, securely linking
+ *   the two separate collections.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
-
-    /**
-     * Checks if the user is authenticated.
-     */
+    // Helper functions for reusable logic
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the currently authenticated user's ID matches the provided userId from the path.
-     * This is the fundamental check for all user-owned data.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Verifies ownership for an existing document. Used for update and delete operations
-     * to ensure the document exists before the operation is attempted.
-     */
+    // Verifies ownership for an existing document. Crucial for safe updates and deletes.
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    /**
-     * Validates that a new user document has an `id` field that matches the document's ID
-     * in the path, ensuring relational integrity upon creation.
-     */
-    function isCreatingOwnUserDocument(userId) {
-      return request.resource.data.id == userId;
+    // Checks if the currently signed-in user's profile document links to this subscription.
+    // This is a secure way to authorize access to a related top-level document.
+    function isSubscriptionOwner(subscriptionId) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionId == subscriptionId;
     }
 
     /**
-     * Enforces immutability of the user `id` field during an update.
-     */
-    function isUpdatingOwnUserDocument() {
-      return request.resource.data.id == resource.data.id;
-    }
-
-    /**
-     * Validates that a new document in a user's subcollection has a `userId` field
-     * that matches the owner's ID from the path.
-     */
-    function isCreatingChildDocument(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    /**
-     * Enforces immutability of the `userId` field in a subcollection document during an update.
-     */
-    function isUpdatingChildDocument() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-    /**
-     * @description Manages user profile documents.
+     * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (create) An authenticated user can create their own user document.
-     * @deny (list) A user cannot list all other users in the system.
+     * @allow (get) An authenticated user ('user_abc') reading their own profile document at `/users/user_abc`.
+     * @deny (get) An authenticated user ('user_xyz') trying to read another user's profile at `/users/user_abc`.
+     * @deny (list) Any user trying to list all documents in the `/users` collection.
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && isCreatingOwnUserDocument(userId);
-      allow update: if isExistingOwner(userId) && isUpdatingOwnUserDocument();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
+    }
 
-      /**
-       * @description Manages a user's subscription records.
-<<<<<<< HEAD
-       * @path /users/{userId}/subscriptions/{subscriptionId}
-       * @allow (create) An authenticated user can create a subscription document for themselves.
-       * @deny (get) An authenticated user cannot access subscriptions belonging to another user.
-       * @principle Enforces document ownership for all operations within a user-specific subcollection.
-       */
-      match /subscriptions/{subscriptionId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-=======
-       * @path /users/{userId}/subscriptions
-       * @allow (list) An authenticated user can list their own subscriptions.
-       */
-      match /subscriptions/{subscriptionId} {
-        allow get: if isOwner(userId);
->>>>>>> 8653dcd (Try fixing this error: `Runtime FirebaseError: Missing or insufficient p)
-        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
-        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
-        allow delete: if isExistingOwner(userId);
-      }
-<<<<<<< HEAD
+    /**
+     * @description Controls access to a user's private email analytics records.
+     * @path /users/{userId}/analytics/{analyticsId}
+     * @allow (list) An authenticated user ('user_abc') listing their own analytics at `/users/user_abc/analytics`.
+     * @deny (get) An authenticated user ('user_xyz') trying to get an analytics doc at `/users/user_abc/analytics/123`.
+     * @principle Enforces inherited document ownership from the parent user document.
+     */
+    match /users/{userId}/analytics/{analyticsId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
 
-      /**
-       * @description Manages a user's email analytics data.
-       * @path /users/{userId}/email_analytics/{emailAnalyticsId}
-       * @allow (list) An authenticated user can list their own email analytics records.
-       * @deny (update) An authenticated user cannot update analytics data belonging to another user.
-       * @principle Enforces document ownership and validates relational integrity between parent and child documents.
-       */
-      match /email_analytics/{emailAnalyticsId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
-        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
-        allow delete: if isExistingOwner(userId);
-      }
-      
-      /**
-       * @description Manages a user's sender domains.
-       * @path /users/{userId}/senders/{senderId}
-       */
-      match /senders/{senderId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
-        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
-        allow delete: if isExistingOwner(userId);
-      }
-
-      /**
-       * @description Manages a user's API keys.
-       * @path /users/{userId}/apiKeys/{apiKeyId}
-       */
-      match /apiKeys/{apiKeyId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
-        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
-        allow delete: if isExistingOwner(userId);
-      }
-=======
-      
-      match /subscriptions/{subscriptionId} {
-        allow list: if isOwner(userId);
-      }
-
-
-      /**
-       * @description Manages a user's email analytics data.
-       * @path /users/{userId}/email_analytics
-       * @allow (list) An authenticated user can list their own email analytics data.
-       */
-       match /email_analytics/{emailAnalyticsId} {
-        allow get: if isOwner(userId);
-        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
-        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
-        allow delete: if isExistingOwner(userId);
-       }
-       
-       match /email_analytics/{emailAnalyticsId} {
-         allow list: if isOwner(userId);
-       }
->>>>>>> 8653dcd (Try fixing this error: `Runtime FirebaseError: Missing or insufficient p)
+    /**
+     * @description Controls access to subscription documents. Users can only read their own subscription.
+     * @path /subscriptions/{subscriptionId}
+     * @allow (get) A user ('user_abc') reading `/subscriptions/sub_123` if their document at `/users/user_abc` has `subscriptionId: 'sub_123'`.
+     * @deny (get) A user ('user_xyz') trying to read `/subscriptions/sub_123` because their own profile does not link to it.
+     * @deny (list, create, update, delete) All users are denied from listing or modifying subscriptions directly.
+     * @principle Secures related data in separate collections using a lookup (`get`) for authorization. Writes are disabled, assuming server-side management.
+     */
+    match /subscriptions/{subscriptionId} {
+      allow get: if isSignedIn() && isSubscriptionOwner(subscriptionId);
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
