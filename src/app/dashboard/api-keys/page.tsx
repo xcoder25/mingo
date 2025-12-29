@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
+import { generateApiKey } from '@/ai/flows/generate-api-key-flow';
 
 
 export default function ApiKeysPage() {
@@ -68,7 +69,8 @@ export default function ApiKeysPage() {
         return;
     }
 
-    const key = `mingo_${crypto.randomUUID().replace(/-/g, '')}`;
+    const { key } = await generateApiKey({name: newKeyName.trim()});
+    
     const keyData = {
       userId: user.uid,
       name: newKeyName.trim(),
@@ -201,7 +203,7 @@ export default function ApiKeysPage() {
             <AlertDialogDescription>
               Please copy your new API key. For security, you will not be able to see it again.
             </AlertDialogDescription>
-          </AlertDialogHeader>
+          </header>
           <div className="p-4 bg-secondary rounded-md font-mono text-sm break-all relative">
             {generatedKey}
             <Button 

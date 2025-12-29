@@ -69,6 +69,19 @@
       },
       "required": ["id", "userId", "name", "key", "createdAt"]
     },
+    "ApiKeySuggestion": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "ApiKeySuggestion",
+        "type": "object",
+        "description": "Represents a suggestion for an API key.",
+        "properties": {
+            "creativeName": {
+                "type": "string",
+                "description": "A creative, url-safe, three-word name separated by hyphens (e.g., 'sunny-river-dream')."
+            }
+        },
+        "required": ["creativeName"]
+    },
     "Sender": {
         "title": "Sender",
         "description": "Represents a verified sender domain for a user.",

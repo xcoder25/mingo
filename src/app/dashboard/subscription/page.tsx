@@ -24,6 +24,8 @@ import { collection, serverTimestamp, doc } from 'firebase/firestore';
 import type { UserProfile, EmailAnalytics } from '@/lib/types';
 import { subDays } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { generateApiKey } from '@/ai/flows/generate-api-key-flow';
+
 
 declare global {
     interface Window {
@@ -186,8 +188,8 @@ export default function SubscriptionPage() {
             addDocumentNonBlocking(analyticsRef, { userId: user.uid, ...analyticsData });
         }
         
-        // Generate an API Key for main subscriptions
-        const apiKey = `mingo_${crypto.randomUUID().replace(/-/g, '')}`;
+        const { key: apiKey } = await generateApiKey({name: `${plan.name} Initial Key`});
+        
         const apiKeyData = {
             userId: user.uid,
             name: `${plan.name} Initial Key`,
