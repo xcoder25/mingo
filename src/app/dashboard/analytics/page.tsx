@@ -85,29 +85,29 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent>
            <div className="grid gap-4">
-             <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-                <div className="grid gap-1">
+             <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg bg-secondary">
+                <AlertCircle className="h-6 w-6 text-destructive flex-shrink-0" />
+                <div className="grid gap-1 flex-1">
                     <p className="text-sm font-medium leading-none">user@example-domain-that-doesnt-exist.com</p>
                     <p className="text-sm text-muted-foreground">Reason: Hard Bounce - Mailbox not found</p>
                 </div>
-                <div className="ml-auto text-xs text-muted-foreground">Jun 28, 2024</div>
+                <div className="ml-auto text-xs text-muted-foreground self-start sm:self-center">Jun 28, 2024</div>
             </div>
-             <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-                <div className="grid gap-1">
+             <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg bg-secondary">
+                <AlertCircle className="h-6 w-6 text-destructive flex-shrink-0" />
+                <div className="grid gap-1 flex-1">
                     <p className="text-sm font-medium leading-none">another-user@invalid-email-provider.net</p>
                     <p className="text-sm text-muted-foreground">Reason: Hard Bounce - Domain does not accept mail</p>
                 </div>
-                <div className="ml-auto text-xs text-muted-foreground">Jun 27, 2024</div>
+                <div className="ml-auto text-xs text-muted-foreground self-start sm:self-center">Jun 27, 2024</div>
             </div>
-             <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary">
-                <CheckCircle className="h-6 w-6 text-yellow-500" />
-                <div className="grid gap-1">
+             <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg bg-secondary">
+                <CheckCircle className="h-6 w-6 text-yellow-500 flex-shrink-0" />
+                <div className="grid gap-1 flex-1">
                     <p className="text-sm font-medium leading-none">full-inbox@example.com</p>
                     <p className="text-sm text-muted-foreground">Reason: Soft Bounce - Mailbox full</p>
                 </div>
-                <div className="ml-auto text-xs text-muted-foreground">Jun 26, 2024</div>
+                <div className="ml-auto text-xs text-muted-foreground self-start sm:self-center">Jun 26, 2024</div>
             </div>
           </div>
         </CardContent>

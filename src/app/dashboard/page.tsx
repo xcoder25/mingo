@@ -84,7 +84,7 @@ export default function DashboardPage() {
 
   return (
     <div className="grid gap-4 md:gap-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Emails Sent</CardTitle>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">Based on delivered emails</p>
                 </CardContent>
             </Card>
-            <Card>
+            <Card className="sm:col-span-2 lg:col-span-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Click-through Rate</CardTitle>
                     <MousePointerClick className="h-4 w-4 text-muted-foreground" />

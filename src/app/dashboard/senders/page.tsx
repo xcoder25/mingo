@@ -80,14 +80,15 @@ export default function SendersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input
               type="text"
               placeholder="example.com"
               value={newDomain}
               onChange={(e) => setNewDomain(e.target.value)}
+              className="w-full"
             />
-            <Button onClick={handleAddDomain}>Add Domain</Button>
+            <Button onClick={handleAddDomain} className="w-full sm:w-auto">Add Domain</Button>
           </div>
         </CardContent>
       </Card>
@@ -190,7 +191,7 @@ function DnsRecordRow({ sender }: { sender: Sender }) {
                     <Label className="font-semibold">DKIM Record</Label>
                      <div className="flex items-center justify-between p-2 rounded-md bg-background font-mono text-xs">
                         <span className="truncate">{sender.dkimRecord}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(sender.dkim-record)}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(sender.dkimRecord)}>
                             <Copy className="h-4 w-4" />
                         </Button>
                     </div>

@@ -118,7 +118,7 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-16 items-center justify-between border-b bg-card px-6 md:justify-end">
+        <header className="flex h-16 items-center justify-between border-b bg-card px-4 sm:px-6 md:justify-end">
             <SidebarTrigger className="flex md:hidden" />
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon">

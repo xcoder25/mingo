@@ -191,7 +191,7 @@ export default function SubscriptionPage() {
   return (
     <div className="grid gap-6">
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <CardTitle>Subscription</CardTitle>
             <CardDescription>
@@ -199,7 +199,7 @@ export default function SubscriptionPage() {
               <span className="font-semibold text-primary">{activeSubscription ? activeSubscription.name : 'None'}</span>.
             </CardDescription>
           </div>
-          <div className="w-[180px]">
+          <div className="w-full sm:w-[180px]">
             <Select
               defaultValue={selectedCurrency.code}
               onValueChange={handleCurrencyChange}
@@ -218,7 +218,7 @@ export default function SubscriptionPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {plans.map((plan) => (
               <Card
                 key={plan.id}
