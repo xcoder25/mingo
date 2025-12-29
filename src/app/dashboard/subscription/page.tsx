@@ -52,7 +52,7 @@ export const plans: Plan[] = [
     id: 'basic',
     name: 'Mingo Basic',
     description: 'For individuals and small teams.',
-    priceUSD: 29,
+    priceUSD: 37.5,
     features: [
       '10,000 Email Sends/month',
       'Basic Analytics',
@@ -246,7 +246,7 @@ export default function SubscriptionPage() {
                   <div className="text-4xl font-bold">
                     {formatPrice(plan.priceUSD)}
                     <span className="text-base font-normal text-muted-foreground">
-                      /month
+                      / 18 months
                     </span>
                   </div>
                   <ul className="grid gap-3 text-sm text-muted-foreground pt-6">
