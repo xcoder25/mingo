@@ -28,13 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-// Define Flutterwave types for TypeScript
-declare global {
-  interface Window {
-    FlutterwaveCheckout: (options: any) => void;
-  }
-}
+import { useToast } from '@/hooks/use-toast';
 
 export interface Plan {
   id: string;
@@ -102,6 +96,8 @@ export default function ProductsPage() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const getPrice = (priceUSD: number) => {
     const rate = currencyRates[currency];
@@ -113,65 +109,55 @@ export default function ProductsPage() {
     }).format(price);
   };
 
-  const handlePayment = (plan: Plan, customerEmail: string) => {
-    const amount = plan.priceUSD * currencyRates[currency];
-    
-    if (window.FlutterwaveCheckout) {
-      window.FlutterwaveCheckout({
-        public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
-        tx_ref: `MingoSMTP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        amount,
-        currency,
-        payment_options: 'card,mobilemoney,ussd',
-        customer: {
-          email: customerEmail,
-          name: 'Valued Customer',
-        },
-        customizations: {
-          title: 'MingoSMTP',
-          description: `Payment for ${plan.name}`,
-          logo: 'https://cdn.iconscout.com/icon/premium/png-256-thumb/mail-2533315-2122605.png',
-        },
-        callback: (response: any) => {
-          console.log('Payment successful. Response:', response);
-          if (response.status === 'successful') {
-            console.log('Generating credentials for successful payment...');
-            console.log('API Key: MINGO-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx');
-            console.log('SMTP Host: smtp.mingosmtp.com');
-            console.log('SMTP Port: 587');
-            alert('Payment successful! Check the browser console for your mock credentials.');
-          } else {
-            console.error('Payment was not successful. Status:', response.status);
-            alert('Payment was not successful. Please try again.');
-          }
-          setIsEmailDialogOpen(false);
-          setEmail('');
-        },
-        onclose: () => {
-          console.log('Payment modal closed.');
-          setIsEmailDialogOpen(false);
-          setEmail('');
-        },
-      });
-    } else {
-      console.error('Flutterwave checkout script not loaded.');
-      alert('Payment service is currently unavailable. Please try again later.');
-    }
-  };
-  
   const openEmailDialog = (plan: Plan) => {
     setSelectedPlan(plan);
     setIsEmailDialogOpen(true);
   };
 
-  const handleProceedToPayment = () => {
-    if (selectedPlan && email) {
-      handlePayment(selectedPlan, email);
-    } else {
-      alert('Please enter a valid email address.');
+  const handleProceedToPayment = async () => {
+    if (!selectedPlan || !email) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please select a plan and enter a valid email address.',
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/pay', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: selectedPlan.priceUSD * currencyRates[currency],
+          currency: currency,
+          email: email,
+          planName: selectedPlan.name,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        window.location.href = data.paymentLink;
+      } else {
+        throw new Error(data.error || 'Failed to initiate payment.');
+      }
+    } catch (error: any) {
+      console.error('Payment initiation failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Payment Error',
+        description: error.message || 'Could not connect to the payment gateway. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
-
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -258,8 +244,8 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
-            <Button onClick={handleProceedToPayment}>
-              Proceed to Payment
+            <Button onClick={handleProceedToPayment} disabled={isLoading}>
+              {isLoading ? 'Processing...' : 'Proceed to Payment'}
             </Button>
           </DialogContent>
         </Dialog>
