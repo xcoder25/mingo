@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import getConfig from 'next/config';
 import { randomUUID } from 'crypto';
