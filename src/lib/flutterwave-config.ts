@@ -3,7 +3,7 @@ const isProd = process.env.NODE_ENV === 'production';
 
 // URLs
 const SANDBOX_AUTH_URL = 'https://idp-sandbox.flutterwave.com/oauth2/token';
-const SANDBOX_API_URL = 'https://api.flutterwave.com/v3'; 
+const SANDBOX_API_URL = 'https://api.flutterwave.com/v3';
 const PROD_AUTH_URL = 'https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token';
 const PROD_API_URL = 'https://api.flutterwave.com/v3';
 
