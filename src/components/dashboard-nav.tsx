@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Bot, CreditCard, LayoutDashboard, BarChart, Send, Key } from 'lucide-react';
-import type { Subscription } from '@/lib/types';
+import type { Plan } from '@/app/dashboard/subscription/page';
 
 type NavItem = {
   href: string;
@@ -33,13 +33,13 @@ const navItems: NavItem[] = [
   { href: '/dashboard/subscription', icon: CreditCard, label: 'Subscription', tooltip: 'Subscription' },
 ];
 
-export function DashboardNav({ activeSubscription }: { activeSubscription: Subscription | null }) {
+export function DashboardNav({ activePlan }: { activePlan: Plan | null | undefined }) {
   const pathname = usePathname();
 
   const filteredNavItems = navItems.filter(item => {
     if (item.requiredPlanIds) {
-        if (!activeSubscription) return false;
-        return item.requiredPlanIds.includes(activeSubscription.planId);
+        if (!activePlan) return false;
+        return item.requiredPlanIds.includes(activePlan.id);
     }
     return true;
   });

@@ -15,68 +15,75 @@
           "description": "User's email address.",
           "format": "email"
         },
-        "firstName": {
+        "fullName": {
           "type": "string",
-          "description": "User's first name."
+          "description": "User's full name."
         },
-        "lastName": {
-          "type": "string",
-          "description": "User's last name."
+        "subscriptionPlan": {
+            "type": "string",
+            "description": "The ID of the user's current subscription plan (e.g., 'basic', 'pro')."
         },
-        "subscriptionId": {
-          "type": "string",
-          "description": "Reference to the user's Subscription. (Relationship: User 1:1 Subscription)"
+        "subscriptionStatus": {
+            "type": "string",
+            "description": "The status of the user's subscription (e.g., 'active', 'inactive')."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the user account was created."
         }
       },
       "required": [
         "id",
         "email",
-        "firstName",
-        "lastName",
-        "subscriptionId"
+        "createdAt"
       ]
     },
-    "Subscription": {
+    "ApiKey": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Subscription",
+      "title": "ApiKey",
       "type": "object",
-      "description": "Represents a user's subscription to the MingoSMTP service.",
+      "description": "Represents an API key for a user.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the subscription."
+          "description": "Unique identifier for the API key."
         },
-        "startDate": {
+        "userId": {
           "type": "string",
-          "description": "The date the subscription started.",
-          "format": "date-time"
+          "description": "The ID of the user who owns this key."
         },
-        "endDate": {
+        "name": {
           "type": "string",
-          "description": "The date the subscription ends.",
-          "format": "date-time"
+          "description": "A user-friendly name for the key."
         },
-        "renewalDate": {
+        "key": {
           "type": "string",
-          "description": "The date the subscription is set to renew.",
-          "format": "date-time"
+          "description": "The API key string. In a real app, this should be a hash."
         },
-        "amount": {
-          "type": "number",
-          "description": "The amount that is billed annually for the subscription."
-        },
-        "status": {
+        "createdAt": {
           "type": "string",
-          "description": "The status of the subscription (e.g., active, inactive, canceled)."
+          "format": "date-time",
+          "description": "The timestamp when the key was created."
         }
       },
-      "required": [
-        "id",
-        "startDate",
-        "endDate",
-        "amount",
-        "status"
-      ]
+      "required": ["id", "userId", "name", "key", "createdAt"]
+    },
+    "Sender": {
+        "title": "Sender",
+        "description": "Represents a verified sender domain for a user.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "userId": { "type": "string" },
+            "domain": { "type": "string" },
+            "status": { "type": "string", "enum": ["pending", "verified", "failed"] },
+            "spfRecord": { "type": "string" },
+            "dkimRecord": { "type": "string" },
+            "dmarcRecord": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["userId", "domain", "status", "spfRecord", "dkimRecord", "dmarcRecord", "createdAt"]
     },
     "EmailAnalytics": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -133,7 +140,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "phone"
     ]
   },
   "firestore": {
@@ -174,23 +182,30 @@
           ]
         }
       },
-      {
-        "path": "/subscriptions/{subscriptionId}",
+       {
+        "path": "/users/{userId}/apiKeys/{apiKeyId}",
         "definition": {
-          "entityName": "Subscription",
-          "schema": {
-            "$ref": "#/backend/entities/Subscription"
-          },
-          "description": "Stores subscription information. Each subscription document is only accessible to administrators or the user associated with the subscription. Note: The user is associated with the subscription through the User entity, specifically User.subscriptionId.",
+          "entityName": "ApiKey",
+          "schema": { "$ref": "#/backend/entities/ApiKey" },
+          "description": "Stores API keys for each user.",
           "params": [
-            {
-              "name": "subscriptionId",
-              "description": "The unique identifier for the subscription."
-            }
+            { "name": "userId", "description": "The user's ID." },
+            { "name": "apiKeyId", "description": "The API key's ID." }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/senders/{senderId}",
+        "definition": {
+          "entityName": "Sender",
+          "schema": { "$ref": "#/backend/entities/Sender" },
+          "description": "Stores sender domains for each user.",
+          "params": [
+            { "name": "userId", "description": "The user's ID." },
+            { "name": "senderId", "description": "The sender's ID." }
           ]
         }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability. User data and related information are stored in a way that minimizes the need for complex security rules and `get()` calls, promoting atomic operations and easier debugging.\n\n*   **Authorization Independence:** The structure avoids hierarchical authorization dependencies. For example, `EmailAnalytics` are stored under `/users/{userId}/analytics/{analyticsId}`. The rules only need to verify `request.auth.uid == userId` to authorize the operation without reading the parent `User` document. The `Subscription` is associated with the user via the `users/{userId}` document. While not a subcollection, this structure ensures the rules only need to check ownership of the user document to ensure the security of data.\n*   **Structural Segregation:** Each collection serves a distinct purpose with homogeneous security requirements. Private user data is stored under `/users/{userId}`, while subscription data is associated via the `subscriptionId` field within the `User` document.\n*   **Access Modeling:** Path-based ownership is used for user data (`/users/{userId}`), enforcing that only the authenticated user can access their own data.\n*   **QAPs (Rules are not Filters):** The structure supports secure `list` operations. For example, listing analytics for a user is done via `/users/{userId}/analytics`. The rule will verify `request.auth.uid == userId` which makes the `list` operation secure."
+    ]
   }
 }

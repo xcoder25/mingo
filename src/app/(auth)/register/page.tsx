@@ -13,23 +13,50 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { useAuth, useUser, initiateEmailSignUp } from '@/firebase';
+import { useAuth, useUser, initiateEmailSignUp, setDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Phone } from 'lucide-react';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import { doc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const firestore = useFirestore();
 
   useEffect(() => {
     if (!isUserLoading && user) {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
+
+  useEffect(() => {
+    if(!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user && firestore) {
+            // New user, create their profile document
+            const userRef = doc(firestore, 'users', user.uid);
+            const userData = {
+                id: user.uid,
+                email: user.email,
+                fullName: fullName || user.displayName,
+                subscriptionPlan: null,
+                subscriptionStatus: 'inactive',
+                createdAt: serverTimestamp(),
+            };
+            // Don't block navigation
+            setDocumentNonBlocking(userRef, userData, { merge: true });
+        }
+    });
+    return () => unsubscribe();
+  }, [auth, firestore, fullName]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +96,7 @@ export default function RegisterPage() {
             <form onSubmit={handleRegister} className="grid gap-4">
                 <div className="grid gap-2">
                 <Label htmlFor="full-name">Full Name</Label>
-                <Input id="full-name" placeholder="John Doe" required />
+                <Input id="full-name" placeholder="John Doe" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 </div>
                 <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>

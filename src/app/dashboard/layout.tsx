@@ -15,11 +15,12 @@ import { Button } from '@/components/ui/button';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { Logo } from '@/components/logo';
 import { LogOut, Settings } from 'lucide-react';
-import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import type { Subscription } from '@/lib/types';
+import { useEffect } from 'react';
+import type { UserProfile } from '@/lib/types';
+import { plans } from '@/app/dashboard/subscription/page';
 
 export default function DashboardLayout({
   children,
@@ -31,40 +32,30 @@ export default function DashboardLayout({
   const firestore = useFirestore();
   const router = useRouter();
 
-  const [activeSubscription, setActiveSubscription] = useState<Subscription | null>(null);
-  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
+  const userProfileRef = useMemoFirebase(() => {
+      if (!user || !firestore) return null;
+      return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
-
+  
   useEffect(() => {
-    async function fetchSubscription() {
-      if (!user || !firestore) return;
-      setIsSubscriptionLoading(true);
-      const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
-      const q = query(
-        subscriptionsRef,
-        where('status', '==', 'active'),
-        orderBy('endDate', 'desc'),
-        limit(1)
-      );
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const subDoc = querySnapshot.docs[0];
-        setActiveSubscription({ id: subDoc.id, ...subDoc.data() } as Subscription);
-      } else {
-        router.push('/dashboard/subscription');
+      if(!isProfileLoading && userProfile && userProfile.subscriptionStatus !== 'active') {
+          router.push('/dashboard/subscription');
       }
-      setIsSubscriptionLoading(false);
-    }
-    fetchSubscription();
-  }, [user, firestore, router]);
+  }, [userProfile, isProfileLoading, router]);
 
-
-  const isLoading = isUserLoading || isSubscriptionLoading;
+  const isLoading = isUserLoading || isProfileLoading;
+  
+  const activePlan = userProfile?.subscriptionPlan 
+    ? plans.find(p => p.id === userProfile.subscriptionPlan)
+    : null;
 
   if (isLoading || !user) {
     return null; // Or a loading spinner
@@ -84,7 +75,7 @@ export default function DashboardLayout({
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <DashboardNav activeSubscription={activeSubscription} />
+          <DashboardNav activePlan={activePlan} />
         </SidebarContent>
         <SidebarFooter>
           <div className="flex flex-col gap-2 p-2">
@@ -94,8 +85,8 @@ export default function DashboardLayout({
                 <AvatarFallback>{user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="text-sm font-medium">{user.displayName || user.email}</span>
-                <span className="text-xs text-muted-foreground">{activeSubscription ? activeSubscription.name : 'No active plan'}</span>
+                <span className="text-sm font-medium">{userProfile?.fullName || user.email}</span>
+                <span className="text-xs text-muted-foreground">{activePlan ? activePlan.name : 'No active plan'}</span>
               </div>
             </div>
             <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>

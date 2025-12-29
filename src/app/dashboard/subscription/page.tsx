@@ -19,10 +19,10 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, getDocs, query, where, orderBy, limit, doc } from 'firebase/firestore';
-import type { Subscription, EmailAnalytics } from '@/lib/types';
-import { add, subDays } from 'date-fns';
+import { useUser, useFirestore, addDocumentNonBlocking, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import type { UserProfile, EmailAnalytics } from '@/lib/types';
+import { subDays } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
 
@@ -97,47 +97,12 @@ export default function SubscriptionPage() {
   );
   const { toast } = useToast();
   
-  const [activeSubscription, setActiveSubscription] = useState<Subscription | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const userProfileRef = useMemoFirebase(() => {
+      if (!user || !firestore) return null;
+      return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
 
-  useEffect(() => {
-    if (!user || !firestore) {
-        if(!user) setIsLoading(false);
-        return;
-    };
-
-    const fetchSubscription = async () => {
-      setIsLoading(true);
-      try {
-        const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
-        const q = query(
-          subscriptionsRef,
-          where('status', '==', 'active'),
-          orderBy('endDate', 'desc'),
-          limit(1)
-        );
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const subDoc = querySnapshot.docs[0];
-          setActiveSubscription({ id: subDoc.id, ...subDoc.data() } as Subscription);
-        } else {
-          setActiveSubscription(null);
-        }
-      } catch (error) {
-        console.error("Error fetching subscription:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not fetch subscription details.",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSubscription();
-  }, [user, firestore, toast]);
-
+  const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
 
   const handleCurrencyChange = (currencyCode: string) => {
     const currency = currencies.find((c) => c.code === currencyCode);
@@ -156,30 +121,23 @@ export default function SubscriptionPage() {
   };
   
   const handleSelectPlan = async (plan: Plan) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !userProfileRef) return;
 
-    // 1. Create the new subscription
-    const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
-    const startDate = new Date();
-    const endDate = add(startDate, { months: 1 });
+    // Simulate payment with Flutterwave (client-side)
+    // In a real app, this would involve a backend and Flutterwave's SDK
+    toast({
+        title: 'Redirecting to payment gateway...',
+        description: 'You will be redirected to complete your payment.',
+    });
 
-    const newSubscription: Omit<Subscription, 'id'> = {
-        userId: user.uid,
-        planId: plan.id,
-        name: plan.name,
-        status: 'active',
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        createdAt: serverTimestamp(),
-        price: plan.priceUSD,
-        currency: selectedCurrency.code,
-        transactionRef: `mock_${new Date().getTime()}`,
-    };
-
-    const docRef = await addDocumentNonBlocking(subscriptionsRef, newSubscription);
-
-    if (docRef) {
-        setActiveSubscription({ id: docRef.id, ...newSubscription } as Subscription);
+    // After a delay to simulate redirection
+    setTimeout(async () => {
+        // 1. Update user profile with new subscription
+        const updatedProfile = {
+            subscriptionPlan: plan.id,
+            subscriptionStatus: 'active',
+        };
+        setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
 
         // 2. Generate an API Key
         const apiKey = `mingo_${crypto.randomUUID().replace(/-/g, '')}`;
@@ -189,9 +147,10 @@ export default function SubscriptionPage() {
           key: apiKey,
           createdAt: serverTimestamp(),
         };
-        await addDocumentNonBlocking(collection(firestore, `users/${user.uid}/apiKeys`), apiKeyData);
+        const apiKeysRef = collection(firestore, `users/${user.uid}/apiKeys`);
+        await addDocumentNonBlocking(apiKeysRef, apiKeyData);
 
-        // 3. Add Dummy Analytics Data
+        // 3. Add Dummy Analytics Data if it doesn't exist
         const analyticsRef = collection(firestore, `users/${user.uid}/email_analytics`);
         for (let i = 0; i < 7; i++) {
             const date = subDays(new Date(), i);
@@ -201,16 +160,15 @@ export default function SubscriptionPage() {
             const opened = Math.floor(delivered * (Math.random() * (0.4 - 0.2) + 0.2));
             const clickThroughRate = Math.random() * (7 - 2) + 2;
 
-            const analyticsData: Omit<EmailAnalytics, 'id'> = {
-                userId: user.uid,
-                date: date.toISOString(),
+            const analyticsData: Omit<EmailAnalytics, 'id' | 'userId'> = {
                 sent,
                 delivered,
                 bounced,
                 opened,
                 clickThroughRate,
+                date: date.toISOString(),
             };
-            await addDocumentNonBlocking(analyticsRef, analyticsData);
+            await addDocumentNonBlocking(analyticsRef, { userId: user.uid, ...analyticsData });
         }
         
         toast({
@@ -220,19 +178,17 @@ export default function SubscriptionPage() {
 
         // 4. Redirect to the getting-started page
         router.push(`/dashboard/getting-started?plan=${plan.name}&apiKey=${apiKey}`);
-    } else {
-        toast({
-            variant: "destructive",
-            title: 'Subscription Failed',
-            description: `There was an error activating the ${plan.name} plan.`,
-        });
-    }
+    }, 2000);
   }
 
 
   if (isLoading) {
     return <div>Loading subscriptions...</div>;
   }
+  
+  const activePlanId = userProfile?.subscriptionStatus === 'active' ? userProfile.subscriptionPlan : null;
+  const activePlanDetails = activePlanId ? plans.find(p => p.id === activePlanId) : null;
+
 
   return (
     <div className="grid gap-6">
@@ -241,16 +197,16 @@ export default function SubscriptionPage() {
           <div>
             <CardTitle>Subscription</CardTitle>
             <CardDescription>
-              {activeSubscription ? (
+              {activePlanDetails ? (
                 <>
                 Your current plan is{' '}
-                <span className="font-semibold text-primary">{activeSubscription.name}</span>.
-                It will renew on {new Date(activeSubscription.endDate as string).toLocaleDateString()}.
+                <span className="font-semibold text-primary">{activePlanDetails.name}</span>.
+                Renew or change after your current plan expires.
                 </>
               ) : 'Choose a plan to get started.'}
             </CardDescription>
           </div>
-          <div className="w-full sm:w-[180px]">
+          <div className="w-full sm:w-auto sm:min-w-[180px]">
             <Select
               defaultValue={selectedCurrency.code}
               onValueChange={handleCurrencyChange}
@@ -274,12 +230,12 @@ export default function SubscriptionPage() {
               <Card
                 key={plan.id}
                 className={`flex flex-col ${
-                  plan.id === activeSubscription?.planId ? 'border-primary ring-2 ring-primary' : ''
+                  plan.id === activePlanId ? 'border-primary ring-2 ring-primary' : ''
                 }`}
               >
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
-                    {plan.id === activeSubscription?.planId && (
+                    {plan.id === activePlanId && (
                       <Zap className="h-6 w-6 text-primary" />
                     )}
                     <CardTitle>{plan.name}</CardTitle>
@@ -303,13 +259,13 @@ export default function SubscriptionPage() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  {plan.id === activeSubscription?.planId ? (
+                  {plan.id === activePlanId ? (
                     <Button variant="outline" className="w-full" disabled>
                       Current Plan
                     </Button>
                   ) : (
-                    <Button className="w-full" onClick={() => handleSelectPlan(plan)} disabled={!!activeSubscription}>
-                      {activeSubscription ? 'Renew/Change Unavailable' : 'Subscribe'}
+                    <Button className="w-full" onClick={() => handleSelectPlan(plan)} disabled={!!activePlanId}>
+                      {activePlanId ? 'Change Plan Unavailable' : 'Subscribe'}
                     </Button>
                   )}
                 </CardFooter>

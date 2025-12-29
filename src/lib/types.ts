@@ -1,18 +1,18 @@
 import type { Timestamp } from "firebase/firestore";
 
-export type User = {
+export type UserProfile = {
     id: string;
     email: string;
-    firstName: string;
-    lastName: string;
+    fullName?: string;
+    subscriptionPlan?: 'basic' | 'pro' | 'enterprise';
+    subscriptionStatus?: 'active' | 'inactive';
     createdAt: string | Timestamp;
-    updatedAt: string | Timestamp;
 };
 
 export type Subscription = {
     id: string;
     userId: string;
-    planId: 'basic' | 'pro' | 'enterprise' | 'growth' | 'scale' | 'ultimate';
+    planId: 'basic' | 'pro' | 'enterprise';
     name: string;
     status: 'active' | 'inactive' | 'cancelled';
     startDate: string | Timestamp;
