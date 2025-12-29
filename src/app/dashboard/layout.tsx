@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import type { UserProfile } from '@/lib/types';
 import { plans } from '@/app/dashboard/subscription/page';
+import { Chatbot } from '@/components/chatbot';
 
 export default function DashboardLayout({
   children,
@@ -46,8 +47,11 @@ export default function DashboardLayout({
   }, [user, isUserLoading, router]);
   
   useEffect(() => {
-      if(!isProfileLoading && userProfile && userProfile.subscriptionStatus !== 'active') {
-          router.push('/dashboard/subscription');
+      if(!isProfileLoading && userProfile && userProfile.subscriptionStatus !== 'active' && !router.pathname.endsWith('subscription')) {
+          const path = router.pathname || '';
+          if (path.startsWith('/dashboard/') && path !== '/dashboard/subscription') {
+            router.push('/dashboard/subscription');
+          }
       }
   }, [userProfile, isProfileLoading, router]);
 
@@ -62,7 +66,9 @@ export default function DashboardLayout({
   }
 
   const handleLogout = () => {
-    auth.signOut();
+    if (auth) {
+      auth.signOut();
+    }
   };
 
   return (
@@ -110,7 +116,10 @@ export default function DashboardLayout({
                 </Avatar>
             </div>
         </header>
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 p-4 md:p-6 relative">
+          {children}
+          <Chatbot />
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

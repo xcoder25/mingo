@@ -141,8 +141,8 @@ export default function SubscriptionPage() {
 
     // Simulate payment with Flutterwave (client-side)
     toast({
-        title: 'Redirecting to payment gateway...',
-        description: 'You will be redirected to complete your payment.',
+        title: 'Simulating payment with Flutterwave...',
+        description: 'Please wait while we process your transaction.',
     });
 
     // After a delay to simulate redirection
