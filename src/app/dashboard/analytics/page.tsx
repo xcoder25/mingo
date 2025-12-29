@@ -23,7 +23,7 @@ export default function AnalyticsPage() {
 
   const analyticsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
-    return query(collection(firestore, `users/${user.uid}/email_analytics`), orderBy('date', 'desc'));
+    return query(collection(firestore, `users/${user.uid}/analytics`), orderBy('date', 'desc'));
   }, [firestore, user?.uid]);
 
   const { data: analyticsData, isLoading } = useCollection<EmailAnalytics>(analyticsQuery);
@@ -59,7 +59,7 @@ export default function AnalyticsPage() {
               ) : (
                 analyticsData?.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>{format(parseISO(item.date), 'MMM d, yyyy')}</TableCell>
+                    <TableCell>{format(parseISO(item.date as string), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">{item.sent.toLocaleString()}</TableCell>
                     <TableCell className="text-right">{item.delivered.toLocaleString()}</TableCell>
                     <TableCell className="text-right">{item.opened.toLocaleString()}</TableCell>

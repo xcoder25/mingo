@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -50,7 +51,7 @@ export default function DashboardPage() {
     const analyticsQuery = useMemoFirebase(() => {
         if (!user) return null;
         return query(
-            collection(firestore, 'users', user.uid, 'email_analytics'),
+            collection(firestore, 'users', user.uid, 'analytics'),
             orderBy('date', 'desc'),
             limit(7)
         );
