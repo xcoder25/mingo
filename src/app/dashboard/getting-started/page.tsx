@@ -27,14 +27,14 @@ function GettingStartedContent() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Something went wrong</CardTitle>
+          <CardTitle>Getting Started</CardTitle>
           <CardDescription>
-            Could not retrieve your plan details. Please check your subscription page.
+            Welcome! You can generate and manage your API keys from the API Keys section.
           </CardDescription>
         </CardHeader>
         <CardContent>
              <Button asChild>
-                <Link href="/dashboard/subscription">View Subscription</Link>
+                <Link href="/dashboard/api-keys">Go to API Keys</Link>
             </Button>
         </CardContent>
       </Card>
@@ -43,8 +43,8 @@ function GettingStartedContent() {
 
   const apiKeys = [
     { name: 'MingoSMTP API Key', value: apiKey },
-    { name: 'Token Generator API Key', value: apiKey },
-    { name: 'Formula 55 API Key', value: apiKey },
+    { name: 'Your Blog API Key', value: 'mingo_xxxx...' },
+    { name: 'Staging Environment Key', value: 'mingo_xxxx...' },
   ];
 
   return (
@@ -56,7 +56,7 @@ function GettingStartedContent() {
           </div>
           <CardTitle className="mt-4 text-3xl">Welcome to {plan}!</CardTitle>
           <CardDescription className="text-lg">
-            Your subscription is active. Here are your API keys to get started.
+            Your subscription is active. Here is your first API key to get started.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
@@ -66,12 +66,12 @@ function GettingStartedContent() {
         </CardContent>
       </Card>
 
-      {apiKeys.map((keyItem) => (
+      {apiKeys.map((keyItem, index) => (
         <Card key={keyItem.name}>
           <CardHeader>
             <CardTitle>{keyItem.name}</CardTitle>
             <CardDescription>
-              Use this key to authenticate your requests. Keep it secure.
+              {index === 0 ? "Use this key to authenticate your requests. Keep it secure." : "You can create more keys for other applications."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -91,6 +91,7 @@ function GettingStartedContent() {
                 size="icon"
                 className="absolute inset-y-0 right-0 h-full w-10"
                 onClick={() => copyToClipboard(keyItem.value)}
+                disabled={index > 0}
               >
                 <Copy className="h-4 w-4" />
                 <span className="sr-only">Copy API Key</span>

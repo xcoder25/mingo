@@ -149,13 +149,23 @@ export default function SubscriptionPage() {
         updatedProfile = {
             hasMapApiAccess: true
         };
+        setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
+        toast({
+            title: 'Purchase Successful!',
+            description: `You now have access to the ${plan.name}.`,
+        });
+        router.push('/dashboard/map');
+
     } else {
-            updatedProfile = {
+        updatedProfile = {
             subscriptionPlan: plan.id as 'basic' | 'pro' | 'enterprise',
             subscriptionStatus: 'active',
         };
 
-        // Only generate dummy data for main subscriptions
+        // Set profile first
+        setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
+
+        // Generate dummy data
         const analyticsRef = collection(firestore, `users/${user.uid}/analytics`);
         for (let i = 0; i < 7; i++) {
             const date = subDays(new Date(), i);
@@ -173,20 +183,9 @@ export default function SubscriptionPage() {
                 clickThroughRate,
                 date: date.toISOString(),
             };
-            await addDocumentNonBlocking(analyticsRef, { userId: user.uid, ...analyticsData });
+            addDocumentNonBlocking(analyticsRef, { userId: user.uid, ...analyticsData });
         }
-    }
-    
-    setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
-
-    if (plan.isOneTimePayment) {
-            toast({
-            title: 'Purchase Successful!',
-            description: `You now have access to the ${plan.name}.`,
-        });
-        // Optional: Redirect to the map page or stay here
-        router.push('/dashboard/map');
-    } else {
+        
         // Generate an API Key for main subscriptions
         const apiKey = `mingo_${crypto.randomUUID().replace(/-/g, '')}`;
         const apiKeyData = {
@@ -196,14 +195,23 @@ export default function SubscriptionPage() {
             createdAt: serverTimestamp(),
         };
         const apiKeysRef = collection(firestore, `users/${user.uid}/apiKeys`);
-        await addDocumentNonBlocking(apiKeysRef, apiKeyData);
-
-        toast({
-            title: 'Plan Activated!',
-            description: `Your subscription to the ${plan.name} plan is now active.`,
-        });
+        
+        try {
+            await addDocumentNonBlocking(apiKeysRef, apiKeyData);
+            toast({
+                title: 'Plan Activated!',
+                description: `Your subscription to the ${plan.name} plan is now active.`,
+            });
             // Redirect to the getting-started page for main subscriptions
-        router.push(`/dashboard/getting-started?plan=${plan.name}&apiKey=${apiKey}`);
+            router.push(`/dashboard/getting-started?plan=${plan.name}&apiKey=${apiKey}`);
+        } catch (error) {
+             toast({
+                variant: 'destructive',
+                title: 'Error creating API Key',
+                description: 'Your plan is active, but we failed to create an initial API key. Please create one manually.',
+            });
+            router.push('/dashboard');
+        }
     }
   }
 
@@ -236,7 +244,6 @@ export default function SubscriptionPage() {
             logo: "https://www.mingosmtp.com/logo.png", // Replace with your actual logo URL
         },
         callback: function (data: any) {
-            console.log("Flutterwave success data:", data);
             // On successful (simulated) payment, run the success logic
             handleSuccess(plan);
         },
