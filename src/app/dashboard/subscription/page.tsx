@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,8 +19,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, query, where, orderBy, limit } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import type { Subscription } from '@/lib/types';
 import { add } from 'date-fns';
 
@@ -33,7 +33,7 @@ type Currency = {
 };
 
 export type Plan = {
-  id: 'basic' | 'pro' | 'enterprise' | 'growth' | 'scale' | 'ultimate';
+  id: 'basic' | 'pro' | 'enterprise';
   name: string;
   description: string;
   priceUSD: number;
@@ -94,19 +94,45 @@ export default function SubscriptionPage() {
     currencies[0]
   );
   const { toast } = useToast();
+  
+  const [activeSubscription, setActiveSubscription] = useState<Subscription | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const userSubscriptionsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(
-        collection(firestore, 'users', user.uid, 'subscriptions'), 
-        where('status', '==', 'active'),
-        orderBy('endDate', 'desc'),
-        limit(1)
-    );
-  }, [firestore, user]);
+  useEffect(() => {
+    if (!user || !firestore) return;
 
-  const { data: subscriptions, isLoading } = useCollection<Subscription>(userSubscriptionsQuery);
-  const activeSubscription = subscriptions?.[0];
+    const fetchSubscription = async () => {
+      setIsLoading(true);
+      try {
+        const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
+        const q = query(
+          subscriptionsRef,
+          where('status', '==', 'active'),
+          orderBy('endDate', 'desc'),
+          limit(1)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const subDoc = querySnapshot.docs[0];
+          setActiveSubscription({ id: subDoc.id, ...subDoc.data() } as Subscription);
+        } else {
+          setActiveSubscription(null);
+        }
+      } catch (error) {
+        console.error("Error fetching subscription:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not fetch subscription details.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSubscription();
+  }, [user, firestore, toast]);
+
 
   const handleCurrencyChange = (currencyCode: string) => {
     const currency = currencies.find((c) => c.code === currencyCode);
@@ -125,7 +151,7 @@ export default function SubscriptionPage() {
   };
   
   const handleSelectPlan = (plan: Plan) => {
-    if (!user) return;
+    if (!user || !firestore) return;
 
     const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
     const startDate = new Date();
@@ -144,7 +170,11 @@ export default function SubscriptionPage() {
         transactionRef: `mock_${new Date().getTime()}`,
     };
 
-    addDocumentNonBlocking(subscriptionsRef, newSubscription);
+    addDocumentNonBlocking(subscriptionsRef, newSubscription).then(docRef => {
+        if(docRef) {
+            setActiveSubscription({ id: docRef.id, ...newSubscription } as Subscription);
+        }
+    });
 
     toast({
       title: 'Plan Updated!',
@@ -153,6 +183,10 @@ export default function SubscriptionPage() {
   }
 
   const currentPlanPrice = plans.find((p) => p.id === activeSubscription?.planId)?.priceUSD || 0;
+
+  if (isLoading) {
+    return <div>Loading subscriptions...</div>;
+  }
 
   return (
     <div className="grid gap-6">
@@ -224,10 +258,7 @@ export default function SubscriptionPage() {
                     </Button>
                   ) : (
                     <Button className="w-full" onClick={() => handleSelectPlan(plan)} disabled={!!activeSubscription}>
-                      {activeSubscription 
-                        ? (plan.priceUSD > currentPlanPrice ? 'Upgrade Unavailable' : 'Downgrade Unavailable')
-                        : 'Subscribe'
-                      }
+                      {activeSubscription ? 'Change Plan Unavailable' : 'Subscribe'}
                     </Button>
                   )}
                 </CardFooter>
