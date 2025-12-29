@@ -20,9 +20,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, serverTimestamp, getDocs, query, where, limit, doc } from 'firebase/firestore';
 import type { Subscription } from '@/lib/types';
 import { add } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 
 type Currency = {
@@ -90,6 +91,7 @@ export const plans: Plan[] = [
 export default function SubscriptionPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(
     currencies[0]
   );
@@ -99,7 +101,10 @@ export default function SubscriptionPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || !firestore) return;
+    if (!user || !firestore) {
+        if(!user) setIsLoading(false);
+        return;
+    };
 
     const fetchSubscription = async () => {
       setIsLoading(true);
@@ -150,9 +155,10 @@ export default function SubscriptionPage() {
     }).format(convertedPrice);
   };
   
-  const handleSelectPlan = (plan: Plan) => {
+  const handleSelectPlan = async (plan: Plan) => {
     if (!user || !firestore) return;
 
+    // 1. Create the new subscription
     const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
     const startDate = new Date();
     const endDate = add(startDate, { months: 1 });
@@ -170,19 +176,37 @@ export default function SubscriptionPage() {
         transactionRef: `mock_${new Date().getTime()}`,
     };
 
-    addDocumentNonBlocking(subscriptionsRef, newSubscription).then(docRef => {
-        if(docRef) {
-            setActiveSubscription({ id: docRef.id, ...newSubscription } as Subscription);
-        }
-    });
+    const docRef = await addDocumentNonBlocking(subscriptionsRef, newSubscription);
 
-    toast({
-      title: 'Plan Updated!',
-      description: `Your subscription to the ${plan.name} plan is now active.`,
-    });
+    if (docRef) {
+        setActiveSubscription({ id: docRef.id, ...newSubscription } as Subscription);
+
+        // 2. Generate an API Key
+        const apiKey = `mingo_${crypto.randomUUID().replace(/-/g, '')}`;
+        const apiKeyData = {
+          userId: user.uid,
+          name: `${plan.name} Initial Key`,
+          key: apiKey,
+          createdAt: serverTimestamp(),
+        };
+        await addDocumentNonBlocking(collection(firestore, `users/${user.uid}/apiKeys`), apiKeyData);
+        
+        toast({
+            title: 'Plan Activated!',
+            description: `Your subscription to the ${plan.name} plan is now active.`,
+        });
+
+        // 3. Redirect to the getting-started page
+        router.push(`/dashboard/getting-started?plan=${plan.name}&apiKey=${apiKey}`);
+    } else {
+        toast({
+            variant: "destructive",
+            title: 'Subscription Failed',
+            description: `There was an error activating the ${plan.name} plan.`,
+        });
+    }
   }
 
-  const currentPlanPrice = plans.find((p) => p.id === activeSubscription?.planId)?.priceUSD || 0;
 
   if (isLoading) {
     return <div>Loading subscriptions...</div>;
@@ -195,8 +219,13 @@ export default function SubscriptionPage() {
           <div>
             <CardTitle>Subscription</CardTitle>
             <CardDescription>
-              Manage your billing and subscription plan. Your current plan is{' '}
-              <span className="font-semibold text-primary">{activeSubscription ? activeSubscription.name : 'None'}</span>.
+              {activeSubscription ? (
+                <>
+                Your current plan is{' '}
+                <span className="font-semibold text-primary">{activeSubscription.name}</span>.
+                It will renew on {new Date(activeSubscription.endDate as string).toLocaleDateString()}.
+                </>
+              ) : 'Choose a plan to get started.'}
             </CardDescription>
           </div>
           <div className="w-full sm:w-[180px]">
@@ -258,7 +287,7 @@ export default function SubscriptionPage() {
                     </Button>
                   ) : (
                     <Button className="w-full" onClick={() => handleSelectPlan(plan)} disabled={!!activeSubscription}>
-                      {activeSubscription ? 'Change Plan Unavailable' : 'Subscribe'}
+                      {activeSubscription ? 'Renew/Change Unavailable' : 'Subscribe'}
                     </Button>
                   )}
                 </CardFooter>
