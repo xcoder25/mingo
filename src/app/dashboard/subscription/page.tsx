@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { usePaystackPayment } from 'react-paystack';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -125,59 +124,35 @@ export default function SubscriptionPage() {
     }).format(convertedPrice);
   };
   
-  const PaystackButton = ({ plan }: { plan: Plan }) => {
-    const config = {
-      reference: new Date().getTime().toString(),
-      email: user?.email || '',
-      amount: Math.round(plan.priceUSD * selectedCurrency.rate * 100), // Amount in kobo/cents
-      publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_test_a68285a855938575510b644f7724ffe8c79af8c0',
-      currency: selectedCurrency.code,
+  const handleSelectPlan = (plan: Plan) => {
+    if (!user) return;
+
+    const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
+    const startDate = new Date();
+    const endDate = add(startDate, { months: 1 });
+
+    const newSubscription: Omit<Subscription, 'id'> = {
+        userId: user.uid,
+        planId: plan.id,
+        name: plan.name,
+        status: 'active',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        createdAt: serverTimestamp(),
+        price: plan.priceUSD,
+        currency: selectedCurrency.code,
+        transactionRef: `mock_${new Date().getTime()}`,
     };
 
-    const initializePayment = usePaystackPayment(config);
+    addDocumentNonBlocking(subscriptionsRef, newSubscription);
 
-    const onSuccess = (transaction: any) => {
-        if (!user) return;
+    toast({
+      title: 'Plan Updated!',
+      description: `Your subscription to the ${plan.name} plan is now active.`,
+    });
+  }
 
-        const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
-        const startDate = new Date();
-        const endDate = add(startDate, { months: 1 });
-
-        const newSubscription: Omit<Subscription, 'id'> = {
-            userId: user.uid,
-            planId: plan.id,
-            name: plan.name,
-            status: 'active',
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
-            createdAt: serverTimestamp(),
-            price: plan.priceUSD,
-            currency: selectedCurrency.code,
-            transactionRef: transaction.reference,
-        };
-
-        addDocumentNonBlocking(subscriptionsRef, newSubscription);
-
-      toast({
-        title: 'Payment Successful!',
-        description: `Your subscription to the ${plan.name} plan is now active.`,
-      });
-    };
-
-    const onClose = () => {
-      console.log('Payment dialog closed');
-    };
-
-    const currentPlanPrice = plans.find((p) => p.id === activeSubscription?.planId)?.priceUSD || 0;
-
-    return (
-      <Button className="w-full" onClick={() => initializePayment({onSuccess, onClose})}>
-        {plan.priceUSD > currentPlanPrice
-          ? 'Upgrade'
-          : plan.priceUSD < currentPlanPrice ? 'Downgrade' : 'Subscribe'}
-      </Button>
-    );
-  };
+  const currentPlanPrice = plans.find((p) => p.id === activeSubscription?.planId)?.priceUSD || 0;
 
   return (
     <div className="grid gap-6">
@@ -248,7 +223,11 @@ export default function SubscriptionPage() {
                       Current Plan
                     </Button>
                   ) : (
-                    <PaystackButton plan={plan} />
+                    <Button className="w-full" onClick={() => handleSelectPlan(plan)}>
+                      {plan.priceUSD > currentPlanPrice
+                        ? 'Upgrade'
+                        : plan.priceUSD < currentPlanPrice ? 'Downgrade' : 'Subscribe'}
+                    </Button>
                   )}
                 </CardFooter>
               </Card>
