@@ -1,14 +1,12 @@
-diff --git a/node_modules/react-paystack/package.json b/node_modules/react-paystack/package.json
-index 32c4161..485de9d 100644
+patch-package
 --- a/node_modules/react-paystack/package.json
 +++ b/node_modules/react-paystack/package.json
-@@ -74,7 +74,7 @@
-     "eslint-plugin-react-hooks": "^4.1.2",
-     "typescript": "^4.0.3"
+@@ -66,6 +66,6 @@
    },
--  "peerDependencies": {
--    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0"
-+    "peerDependencies": {
-+    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+   "peerDependencies": {
+-    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0",
+-    "react-dom": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0"
++    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
++    "react-dom": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
    }
  }

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { BarChart, Bot, CheckCircle, Mail } from 'lucide-react';
+import { BarChart, Bot, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useUser } from '@/firebase';

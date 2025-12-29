@@ -20,11 +20,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, getDocs, query, where, orderBy, limit, doc } from 'firebase/firestore';
+import { collection, serverTimestamp, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import type { Subscription, EmailAnalytics } from '@/lib/types';
 import { add, subDays } from 'date-fns';
 import { useRouter } from 'next/navigation';
-
 
 type Currency = {
   code: 'USD' | 'NGN' | 'GBP';
@@ -87,7 +86,6 @@ export const plans: Plan[] = [
   },
 ];
 
-
 export default function SubscriptionPage() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -138,7 +136,6 @@ export default function SubscriptionPage() {
     fetchSubscription();
   }, [user, firestore, toast]);
 
-
   const handleCurrencyChange = (currencyCode: string) => {
     const currency = currencies.find((c) => c.code === currencyCode);
     if (currency) {
@@ -158,7 +155,6 @@ export default function SubscriptionPage() {
   const handleSelectPlan = async (plan: Plan) => {
     if (!user || !firestore) return;
 
-    // 1. Create the new subscription
     const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
     const startDate = new Date();
     const endDate = add(startDate, { months: 1 });
@@ -181,7 +177,6 @@ export default function SubscriptionPage() {
     if (docRef) {
         setActiveSubscription({ id: docRef.id, ...newSubscription } as Subscription);
 
-        // 2. Generate an API Key
         const apiKey = `mingo_${crypto.randomUUID().replace(/-/g, '')}`;
         const apiKeyData = {
           userId: user.uid,
@@ -191,7 +186,6 @@ export default function SubscriptionPage() {
         };
         await addDocumentNonBlocking(collection(firestore, `users/${user.uid}/apiKeys`), apiKeyData);
 
-        // 3. Add Dummy Analytics Data
         const analyticsRef = collection(firestore, `users/${user.uid}/email_analytics`);
         for (let i = 0; i < 7; i++) {
             const date = subDays(new Date(), i);
@@ -218,7 +212,6 @@ export default function SubscriptionPage() {
             description: `Your subscription to the ${plan.name} plan is now active.`,
         });
 
-        // 4. Redirect to the getting-started page
         router.push(`/dashboard/getting-started?plan=${plan.name}&apiKey=${apiKey}`);
     } else {
         toast({
@@ -228,7 +221,6 @@ export default function SubscriptionPage() {
         });
     }
   }
-
 
   if (isLoading) {
     return <div>Loading subscriptions...</div>;
