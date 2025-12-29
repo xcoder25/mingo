@@ -17,7 +17,7 @@ import { Logo } from '@/components/logo';
 import { LogOut, Settings } from 'lucide-react';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import type { UserProfile } from '@/lib/types';
 import { plans } from '@/app/dashboard/subscription/page';
@@ -32,6 +32,7 @@ export default function DashboardLayout({
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
+  const pathname = usePathname();
 
   const userProfileRef = useMemoFirebase(() => {
       if (!user || !firestore) return null;
@@ -47,13 +48,15 @@ export default function DashboardLayout({
   }, [user, isUserLoading, router]);
   
   useEffect(() => {
-      if(!isProfileLoading && userProfile && userProfile.subscriptionStatus !== 'active' && !router.pathname.endsWith('subscription')) {
-          const path = router.pathname || '';
-          if (path.startsWith('/dashboard/') && path !== '/dashboard/subscription') {
-            router.push('/dashboard/subscription');
-          }
-      }
-  }, [userProfile, isProfileLoading, router]);
+    // Ensure pathname is available before using it
+    if (!pathname) return;
+
+    if (!isProfileLoading && userProfile && userProfile.subscriptionStatus !== 'active' && !pathname.endsWith('subscription')) {
+        if (pathname.startsWith('/dashboard/') && pathname !== '/dashboard/subscription') {
+          router.push('/dashboard/subscription');
+        }
+    }
+  }, [userProfile, isProfileLoading, router, pathname]);
 
   const isLoading = isUserLoading || isProfileLoading;
   
