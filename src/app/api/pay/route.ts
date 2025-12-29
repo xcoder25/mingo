@@ -1,43 +1,16 @@
 
 import { NextResponse } from 'next/server';
-import getConfig from 'next/config';
 import { randomUUID } from 'crypto';
+import { tokenManager } from '@/lib/flutterwave-token-manager';
+import { FLW_API_URL } from '@/lib/flutterwave-config';
 
-async function getFlutterwaveToken(clientId: string, clientSecret: string) {
-  try {
-    const response = await fetch('https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        'client_id': clientId,
-        'client_secret': clientSecret,
-        'grant_type': 'client_credentials',
-      }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error_description || 'Failed to get Flutterwave token');
-    }
-    return data.access_token;
-  } catch (error) {
-    console.error('Error fetching Flutterwave token:', error);
-    throw new Error('Could not authenticate with payment provider.');
-  }
-}
 
 export async function POST(request: Request) {
   try {
-    const { serverRuntimeConfig } = getConfig();
-    const { flutterwavePublicKey, flutterwaveSecretKey } = serverRuntimeConfig;
-    
-    if (!flutterwavePublicKey || !flutterwaveSecretKey) {
-      return NextResponse.json({ error: 'Payment processor is not configured correctly.' }, { status: 500 });
+    const accessToken = await tokenManager.getToken();
+    if (!accessToken) {
+        throw new Error('Could not authenticate with payment provider.');
     }
-
-    const accessToken = await getFlutterwaveToken(flutterwavePublicKey, flutterwaveSecretKey);
 
     const body = await request.json();
     const { amount, currency, email, planName, card } = body;
@@ -50,7 +23,7 @@ export async function POST(request: Request) {
     const traceId = randomUUID();
     const idempotencyKey = randomUUID();
 
-    const pmResponse = await fetch('https://api.flutterwave.com/v3/payment-methods', {
+    const pmResponse = await fetch(`${FLW_API_URL}/payment-methods`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -77,7 +50,7 @@ export async function POST(request: Request) {
     const chargeIdempotencyKey = randomUUID();
     const chargeReference = `MingoSMTP-${Date.now()}`;
     
-    const chargeResponse = await fetch('https://api.flutterwave.com/v3/charges', {
+    const chargeResponse = await fetch(`${FLW_API_URL}/charges`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -91,7 +64,7 @@ export async function POST(request: Request) {
             amount,
             payment_method_id: paymentMethodId,
             redirect_url: `${request.nextUrl.origin}/payment-status?tx_ref=${chargeReference}`,
-            customer: { // Assuming customer creation is not needed for this simple flow
+            customer: {
                 email: email,
             },
             meta: {
@@ -110,6 +83,7 @@ export async function POST(request: Request) {
     }
 
   } catch (error: any) {
+    console.error("Payment API Error:", error);
     return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
   }
 }

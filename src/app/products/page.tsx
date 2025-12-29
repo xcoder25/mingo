@@ -30,7 +30,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { encryptAES } from '@/lib/utils';
-import { randomUUID } from 'crypto';
+import { FLW_ENCRYPTION_KEY } from '@/lib/flutterwave-config';
+
 
 export interface Plan {
   id: string;
@@ -133,7 +134,7 @@ export default function ProductsPage() {
     setIsLoading(true);
 
     try {
-      const encryptionKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_ENCRYPTION_KEY;
+      const encryptionKey = FLW_ENCRYPTION_KEY;
       if (!encryptionKey) {
         throw new Error('Payment gateway is not configured correctly.');
       }
@@ -289,7 +290,7 @@ export default function ProductsPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="expiry-year">Expires (YY)</Label>
+                  <Label htmlFor="expiry-year">Expires (YY)</Label>                  
                   <Input 
                     id="expiry-year" 
                     value={expiryYear}
@@ -328,5 +329,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-
-    
