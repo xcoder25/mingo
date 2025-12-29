@@ -136,82 +136,83 @@ export default function SubscriptionPage() {
     return `${formatted} / 18 months`;
   };
   
-  const handleSelectPlan = async (plan: Plan) => {
+  const handleSuccess = async (plan: Plan) => {
     if (!user || !firestore || !userProfileRef) return;
-
-    // Simulate payment with Flutterwave (client-side)
-    toast({
-        title: 'Simulating payment with Flutterwave...',
-        description: 'Please wait while we process your transaction.',
-    });
-
-    // After a delay to simulate redirection
-    setTimeout(async () => {
-        let updatedProfile: Partial<UserProfile> = {};
+     let updatedProfile: Partial<UserProfile> = {};
         
-        if (plan.isOneTimePayment) {
+    if (plan.isOneTimePayment) {
+        updatedProfile = {
+            hasMapApiAccess: true
+        };
+    } else {
             updatedProfile = {
-                hasMapApiAccess: true
-            };
-        } else {
-             updatedProfile = {
-                subscriptionPlan: plan.id as 'basic' | 'pro' | 'enterprise',
-                subscriptionStatus: 'active',
-            };
+            subscriptionPlan: plan.id as 'basic' | 'pro' | 'enterprise',
+            subscriptionStatus: 'active',
+        };
 
-            // Only generate dummy data for main subscriptions
-            const analyticsRef = collection(firestore, `users/${user.uid}/email_analytics`);
-            for (let i = 0; i < 7; i++) {
-                const date = subDays(new Date(), i);
-                const sent = Math.floor(Math.random() * (1500 - 500 + 1) + 500);
-                const delivered = sent - Math.floor(Math.random() * 50);
-                const bounced = sent - delivered;
-                const opened = Math.floor(delivered * (Math.random() * (0.4 - 0.2) + 0.2));
-                const clickThroughRate = Math.random() * (7 - 2) + 2;
+        // Only generate dummy data for main subscriptions
+        const analyticsRef = collection(firestore, `users/${user.uid}/analytics`);
+        for (let i = 0; i < 7; i++) {
+            const date = subDays(new Date(), i);
+            const sent = Math.floor(Math.random() * (1500 - 500 + 1) + 500);
+            const delivered = sent - Math.floor(Math.random() * 50);
+            const bounced = sent - delivered;
+            const opened = Math.floor(delivered * (Math.random() * (0.4 - 0.2) + 0.2));
+            const clickThroughRate = Math.random() * (7 - 2) + 2;
 
-                const analyticsData: Omit<EmailAnalytics, 'id' | 'userId'> = {
-                    sent,
-                    delivered,
-                    bounced,
-                    opened,
-                    clickThroughRate,
-                    date: date.toISOString(),
-                };
-                await addDocumentNonBlocking(analyticsRef, { userId: user.uid, ...analyticsData });
-            }
+            const analyticsData: Omit<EmailAnalytics, 'id' | 'userId'> = {
+                sent,
+                delivered,
+                bounced,
+                opened,
+                clickThroughRate,
+                date: date.toISOString(),
+            };
+            await addDocumentNonBlocking(analyticsRef, { userId: user.uid, ...analyticsData });
         }
-        
-        setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
+    }
+    
+    setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
 
-        if (plan.isOneTimePayment) {
-             toast({
-                title: 'Purchase Successful!',
-                description: `You now have access to the ${plan.name}.`,
-            });
-            // Optional: Redirect to the map page or stay here
-            router.push('/dashboard/map');
-        } else {
-            // Generate an API Key for main subscriptions
-            const apiKey = `mingo_${crypto.randomUUID().replace(/-/g, '')}`;
-            const apiKeyData = {
-              userId: user.uid,
-              name: `${plan.name} Initial Key`,
-              key: apiKey,
-              createdAt: serverTimestamp(),
-            };
-            const apiKeysRef = collection(firestore, `users/${user.uid}/apiKeys`);
-            await addDocumentNonBlocking(apiKeysRef, apiKeyData);
-
+    if (plan.isOneTimePayment) {
             toast({
-                title: 'Plan Activated!',
-                description: `Your subscription to the ${plan.name} plan is now active.`,
-            });
-             // Redirect to the getting-started page for main subscriptions
-            router.push(`/dashboard/getting-started?plan=${plan.name}&apiKey=${apiKey}`);
-        }
-    }, 2000);
+            title: 'Purchase Successful!',
+            description: `You now have access to the ${plan.name}.`,
+        });
+        // Optional: Redirect to the map page or stay here
+        router.push('/dashboard/map');
+    } else {
+        // Generate an API Key for main subscriptions
+        const apiKey = `mingo_${crypto.randomUUID().replace(/-/g, '')}`;
+        const apiKeyData = {
+            userId: user.uid,
+            name: `${plan.name} Initial Key`,
+            key: apiKey,
+            createdAt: serverTimestamp(),
+        };
+        const apiKeysRef = collection(firestore, `users/${user.uid}/apiKeys`);
+        await addDocumentNonBlocking(apiKeysRef, apiKeyData);
+
+        toast({
+            title: 'Plan Activated!',
+            description: `Your subscription to the ${plan.name} plan is now active.`,
+        });
+            // Redirect to the getting-started page for main subscriptions
+        router.push(`/dashboard/getting-started?plan=${plan.name}&apiKey=${apiKey}`);
+    }
   }
 
+  const handleSelectPlan = (plan: Plan) => {
+    toast({
+        title: 'Processing Payment...',
+        description: 'Simulating transaction with Flutterwave.'
+    });
+
+    // Simulate a delay for the payment processing
+    setTimeout(() => {
+        handleSuccess(plan);
+    }, 3000);
+  }
 
   if (isLoading) {
     return <div>Loading subscriptions...</div>;
