@@ -111,7 +111,7 @@ export default function ProductsPage() {
     const checkout = (window as any).FlutterwaveCheckout;
     if (checkout) {
       checkout({
-        public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '',
+        public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
         tx_ref: `MingoSMTP-${Date.now()}-${Math.random()}`,
         amount,
         currency,
@@ -149,6 +149,8 @@ export default function ProductsPage() {
           setEmail('');
         },
       });
+    } else {
+        console.error('Flutterwave checkout is not available.');
     }
   };
 
