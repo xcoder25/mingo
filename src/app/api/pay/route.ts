@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import getConfig from 'next/config';
+import { randomUUID } from 'crypto';
 
 async function getFlutterwaveToken(clientId: string, clientSecret: string) {
   try {
@@ -38,43 +39,73 @@ export async function POST(request: Request) {
     const accessToken = await getFlutterwaveToken(flutterwavePublicKey, flutterwaveSecretKey);
 
     const body = await request.json();
-    const { amount, currency, email, planName } = body;
+    const { amount, currency, email, planName, card } = body;
 
-    if (!amount || !currency || !email || !planName) {
+    if (!amount || !currency || !email || !planName || !card) {
       return NextResponse.json({ error: 'Missing required payment information.' }, { status: 400 });
     }
+    
+    // Step 1: Create Payment Method
+    const traceId = randomUUID();
+    const idempotencyKey = randomUUID();
 
-    const tx_ref = `MingoSMTP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    const response = await fetch('https://api.flutterwave.com/v3/payments', {
+    const pmResponse = await fetch('https://developersandbox-api.flutterwave.com/payment-methods', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
+        'X-Trace-Id': traceId,
+        'X-Idempotency-Key': idempotencyKey,
       },
       body: JSON.stringify({
-        tx_ref,
-        amount,
-        currency,
-        redirect_url: `${request.nextUrl.origin}/payment-status?tx_ref=${tx_ref}`,
-        customer: {
-          email,
-        },
-        customizations: {
-          title: 'MingoSMTP',
-          description: `Payment for ${planName}`,
-          logo: 'https://cdn.iconscout.com/icon/premium/png-256-thumb/mail-2533315-2122605.png',
-        },
+        type: 'card',
+        card: card,
       }),
     });
 
-    const responseData = await response.json();
+    const pmData = await pmResponse.json();
 
-    if (responseData.status === 'success') {
-      return NextResponse.json({ paymentLink: responseData.data.link });
+    if (pmData.status !== 'success' || !pmData.data?.id) {
+       return NextResponse.json({ error: pmData.message || 'Failed to create payment method.' }, { status: pmResponse.status });
+    }
+
+    const paymentMethodId = pmData.data.id;
+
+    // Step 2: Create Charge
+    const chargeTraceId = randomUUID();
+    const chargeIdempotencyKey = randomUUID();
+    const chargeReference = `MingoSMTP-${Date.now()}`;
+    
+    const chargeResponse = await fetch('https://developersandbox-api.flutterwave.com/charges', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'X-Trace-Id': chargeTraceId,
+            'X-Idempotency-Key': chargeIdempotencyKey,
+        },
+        body: JSON.stringify({
+            reference: chargeReference,
+            currency,
+            amount,
+            payment_method_id: paymentMethodId,
+            redirect_url: `${request.nextUrl.origin}/payment-status?tx_ref=${chargeReference}`,
+            customer: { // Assuming customer creation is not needed for this simple flow
+                email: email,
+            },
+            meta: {
+                plan_name: planName,
+            }
+        })
+    });
+
+    const chargeData = await chargeResponse.json();
+    
+    if (chargeData.status === 'success') {
+      return NextResponse.json(chargeData);
     } else {
-      const errorMessage = responseData.message || 'Failed to create payment link.';
-      return NextResponse.json({ error: errorMessage }, { status: response.status });
+      const errorMessage = chargeData.message || 'Failed to create charge.';
+      return NextResponse.json({ error: errorMessage }, { status: chargeResponse.status });
     }
 
   } catch (error: any) {

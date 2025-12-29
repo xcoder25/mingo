@@ -29,6 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { encryptAES } from '@/lib/utils';
 
 export interface Plan {
   id: string;
@@ -94,8 +95,12 @@ type Currency = keyof typeof currencyRates;
 export default function ProductsPage() {
   const [currency, setCurrency] = useState<Currency>('NGN');
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiryMonth, setExpiryMonth] = useState('');
+  const [expiryYear, setExpiryYear] = useState('');
+  const [cvv, setCvv] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -109,17 +114,17 @@ export default function ProductsPage() {
     }).format(price);
   };
 
-  const openEmailDialog = (plan: Plan) => {
+  const openPaymentDialog = (plan: Plan) => {
     setSelectedPlan(plan);
-    setIsEmailDialogOpen(true);
+    setIsPaymentDialogOpen(true);
   };
 
   const handleProceedToPayment = async () => {
-    if (!selectedPlan || !email) {
+    if (!selectedPlan || !email || !cardNumber || !expiryMonth || !expiryYear || !cvv) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Please select a plan and enter a valid email address.',
+        description: 'Please fill out all payment fields.',
       });
       return;
     }
@@ -127,6 +132,18 @@ export default function ProductsPage() {
     setIsLoading(true);
 
     try {
+      const encryptionKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_ENCRYPTION_KEY;
+      if (!encryptionKey) {
+        throw new Error('Payment gateway is not configured correctly.');
+      }
+      
+      const nonce = Math.random().toString(36).substring(2, 14);
+
+      const encryptedCardNumber = await encryptAES(cardNumber, encryptionKey, nonce);
+      const encryptedExpiryMonth = await encryptAES(expiryMonth, encryptionKey, nonce);
+      const encryptedExpiryYear = await encryptAES(expiryYear, encryptionKey, nonce);
+      const encryptedCvv = await encryptAES(cvv, encryptionKey, nonce);
+      
       const response = await fetch('/api/pay', {
         method: 'POST',
         headers: {
@@ -137,22 +154,33 @@ export default function ProductsPage() {
           currency: currency,
           email: email,
           planName: selectedPlan.name,
+          card: {
+            encrypted_card_number: encryptedCardNumber,
+            encrypted_expiry_month: encryptedExpiryMonth,
+            encrypted_expiry_year: encryptedExpiryYear,
+            encrypted_cvv: encryptedCvv,
+            nonce: nonce,
+          }
         }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        window.location.href = data.paymentLink;
+      if (response.ok && data.status === 'success') {
+        toast({
+            title: 'Payment Successful',
+            description: 'Your payment has been processed successfully.',
+        });
+        setIsPaymentDialogOpen(false);
       } else {
-        throw new Error(data.error || 'Failed to initiate payment.');
+        throw new Error(data.error || 'Failed to process payment.');
       }
     } catch (error: any) {
-      console.error('Payment initiation failed:', error);
+      console.error('Payment failed:', error);
       toast({
         variant: 'destructive',
         title: 'Payment Error',
-        description: error.message || 'Could not connect to the payment gateway. Please try again.',
+        description: error.message || 'Could not process your payment. Please try again.',
       });
     } finally {
       setIsLoading(false);
@@ -212,7 +240,7 @@ export default function ProductsPage() {
                   </ul>
                 </CardContent>
                 <div className="p-6 pt-0">
-                  <Button className="w-full" onClick={() => openEmailDialog(plan)}>
+                  <Button className="w-full" onClick={() => openPaymentDialog(plan)}>
                     {plan.isOneTimePayment ? 'Purchase' : 'Subscribe'}
                   </Button>
                 </div>
@@ -221,31 +249,66 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+        <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Enter your email</DialogTitle>
+              <DialogTitle>Complete Your Purchase</DialogTitle>
               <DialogDescription>
-                Please provide your email to proceed with the payment for {selectedPlan?.name}.
+                Enter your payment details for {selectedPlan?.name}.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email
-                </Label>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="col-span-3"
                   placeholder="name@example.com"
                 />
               </div>
+               <div className="grid gap-2">
+                <Label htmlFor="card-number">Card Number</Label>
+                <Input
+                  id="card-number"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  placeholder="0000 0000 0000 0000"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="expiry-month">Expires (MM)</Label>
+                  <Input 
+                    id="expiry-month" 
+                    value={expiryMonth}
+                    onChange={(e) => setExpiryMonth(e.target.value)}
+                    placeholder="MM"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="expiry-year">Expires (YY)</Label>
+                  <Input 
+                    id="expiry-year" 
+                    value={expiryYear}
+                    onChange={(e) => setExpiryYear(e.target.value)}
+                    placeholder="YY"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="cvv">CVV</Label>
+                  <Input 
+                    id="cvv" 
+                    value={cvv}
+                    onChange={(e) => setCvv(e.target.value)}
+                    placeholder="123"
+                   />
+                </div>
+              </div>
             </div>
             <Button onClick={handleProceedToPayment} disabled={isLoading}>
-              {isLoading ? 'Processing...' : 'Proceed to Payment'}
+              {isLoading ? 'Processing...' : `Pay ${getPrice(selectedPlan?.priceUSD || 0)}`}
             </Button>
           </DialogContent>
         </Dialog>

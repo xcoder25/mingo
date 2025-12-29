@@ -35,6 +35,10 @@ const nextConfig: NextConfig = {
     flutterwavePublicKey: process.env.FLUTTERWAVE_PUBLIC_KEY,
     flutterwaveSecretKey: process.env.FLUTTERWAVE_SECRET_KEY,
   },
+  publicRuntimeConfig: {
+    // Will be available on both server and client
+    flutterwaveEncryptionKey: process.env.NEXT_PUBLIC_FLUTTERWAVE_ENCRYPTION_KEY,
+  },
 };
 
 export default nextConfig;
