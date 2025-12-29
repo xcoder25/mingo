@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'MingoSMTP',
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body className="font-body antialiased h-full">
         {children}
         <Toaster />
+        <Script src="https://checkout.flutterwave.com/v3.js" />
       </body>
     </html>
   );

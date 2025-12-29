@@ -29,9 +29,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { encryptAES } from '@/lib/utils';
-import { FLW_PUBLIC_ENCRYPTION_KEY } from '@/lib/flutterwave-config';
+import { FLW_PUBLIC_KEY } from '@/lib/flutterwave-config';
 
+// Extend the Window interface to include FlutterwaveCheckout
+declare global {
+  interface Window {
+    FlutterwaveCheckout?: (options: any) => void;
+  }
+}
 
 export interface Plan {
   id: string;
@@ -97,13 +102,8 @@ type Currency = keyof typeof currencyRates;
 export default function ProductsPage() {
   const [currency, setCurrency] = useState<Currency>('NGN');
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [email, setEmail] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryMonth, setExpiryMonth] = useState('');
-  const [expiryYear, setExpiryYear] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const getPrice = (priceUSD: number) => {
@@ -116,78 +116,70 @@ export default function ProductsPage() {
     }).format(price);
   };
 
-  const openPaymentDialog = (plan: Plan) => {
+  const openEmailDialog = (plan: Plan) => {
     setSelectedPlan(plan);
-    setIsPaymentDialogOpen(true);
+    setIsEmailDialogOpen(true);
   };
-
-  const handleProceedToPayment = async () => {
-    if (!selectedPlan || !email || !cardNumber || !expiryMonth || !expiryYear || !cvv) {
+  
+  const handleProceedToPayment = () => {
+    if (!selectedPlan || !email) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Please fill out all payment fields.',
+        description: 'Please enter your email address.',
+      });
+      return;
+    }
+
+    if (!FLW_PUBLIC_KEY) {
+      toast({
+        variant: 'destructive',
+        title: 'Configuration Error',
+        description: 'Payment gateway is not configured correctly.',
       });
       return;
     }
     
-    setIsLoading(true);
-
-    try {
-      const encryptionKey = FLW_PUBLIC_ENCRYPTION_KEY;
-      if (!encryptionKey) {
-        throw new Error('Payment gateway is not configured correctly.');
-      }
-      
-      const nonce = window.crypto.randomUUID().substring(0, 12);
-
-      const encryptedCardNumber = await encryptAES(cardNumber, encryptionKey, nonce);
-      const encryptedExpiryMonth = await encryptAES(expiryMonth, encryptionKey, nonce);
-      const encryptedExpiryYear = await encryptAES(expiryYear, encryptionKey, nonce);
-      const encryptedCvv = await encryptAES(cvv, encryptionKey, nonce);
-      
-      const response = await fetch('/api/pay', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: selectedPlan.priceUSD * currencyRates[currency],
-          currency: currency,
-          email: email,
-          planName: selectedPlan.name,
-          card: {
-            encrypted_card_number: encryptedCardNumber,
-            encrypted_expiry_month: encryptedExpiryMonth,
-            encrypted_expiry_year: encryptedExpiryYear,
-            encrypted_cvv: encryptedCvv,
-            nonce: nonce,
-          }
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.status === 'success') {
-        toast({
-            title: 'Payment Successful',
-            description: 'Your payment has been processed successfully.',
-        });
-        setIsPaymentDialogOpen(false);
-      } else {
-        throw new Error(data.error || 'Failed to process payment.');
-      }
-    } catch (error: any) {
-      console.error('Payment failed:', error);
-      toast({
+    if (typeof window.FlutterwaveCheckout !== 'function') {
+       toast({
         variant: 'destructive',
-        title: 'Payment Error',
-        description: error.message || 'Could not process your payment. Please try again.',
+        title: 'Error',
+        description: 'Payment library has not loaded yet. Please try again in a moment.',
       });
-    } finally {
-      setIsLoading(false);
+      return;
     }
+    
+    setIsEmailDialogOpen(false);
+
+    const tx_ref = `MingoSMTP-${Date.now()}`;
+    
+    window.FlutterwaveCheckout({
+      public_key: FLW_PUBLIC_KEY,
+      tx_ref: tx_ref,
+      amount: selectedPlan.priceUSD * currencyRates[currency],
+      currency: currency,
+      payment_options: "card,mobilemoney,ussd",
+      redirect_url: `${window.location.origin}/payment-status`,
+      customer: {
+        email: email,
+        name: email.split('@')[0],
+      },
+      customizations: {
+        title: "MingoSMTP",
+        description: `Payment for ${selectedPlan.name}`,
+        logo: "https://www.mingosmtp.com/logo.png", // Replace with your actual logo URL
+      },
+      callback: function (data: any) {
+        console.log("payment successful, data:", data);
+        // The redirect_url will handle the final status check
+      },
+      onclose: function() {
+        // This is called when the user closes the modal
+        console.log("Checkout modal closed by user.");
+      }
+    });
   };
+
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -242,7 +234,7 @@ export default function ProductsPage() {
                   </ul>
                 </CardContent>
                 <div className="p-6 pt-0">
-                  <Button className="w-full" onClick={() => openPaymentDialog(plan)}>
+                  <Button className="w-full" onClick={() => openEmailDialog(plan)}>
                     {plan.isOneTimePayment ? 'Purchase' : 'Subscribe'}
                   </Button>
                 </div>
@@ -251,12 +243,12 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Complete Your Purchase</DialogTitle>
+              <DialogTitle>Enter Your Email</DialogTitle>
               <DialogDescription>
-                Enter your payment details for {selectedPlan?.name}.
+                Please provide your email to proceed with the purchase of {selectedPlan?.name}.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -270,50 +262,13 @@ export default function ProductsPage() {
                   placeholder="name@example.com"
                 />
               </div>
-               <div className="grid gap-2">
-                <Label htmlFor="card-number">Card Number</Label>
-                <Input
-                  id="card-number"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  placeholder="0000 0000 0000 0000"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="expiry-month">Expires (MM)</Label>
-                  <Input 
-                    id="expiry-month" 
-                    value={expiryMonth}
-                    onChange={(e) => setExpiryMonth(e.target.value)}
-                    placeholder="MM"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="expiry-year">Expires (YY)</Label>                  
-                  <Input 
-                    id="expiry-year" 
-                    value={expiryYear}
-                    onChange={(e) => setExpiryYear(e.target.value)}
-                    placeholder="YY"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="cvv">CVV</Label>
-                  <Input 
-                    id="cvv" 
-                    value={cvv}
-                    onChange={(e) => setCvv(e.target.value)}
-                    placeholder="123"
-                   />
-                </div>
-              </div>
             </div>
-            <Button onClick={handleProceedToPayment} disabled={isLoading}>
-              {isLoading ? 'Processing...' : `Pay ${getPrice(selectedPlan?.priceUSD || 0)}`}
+            <Button onClick={handleProceedToPayment}>
+              Proceed to Payment
             </Button>
           </DialogContent>
         </Dialog>
+
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-muted-foreground">&copy; 2024 MingoSMTP. All rights reserved.</p>
