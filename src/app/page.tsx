@@ -8,9 +8,14 @@ import { BarChart, Bot, CheckCircle, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useUser } from '@/firebase';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero');
+  const testimonialUser1 = PlaceHolderImages.find((img) => img.id === 'testimonial-user-1');
+  const testimonialUser2 = PlaceHolderImages.find((img) => img.id === 'testimonial-user-2');
+  const testimonialUser3 = PlaceHolderImages.find((img) => img.id === 'testimonial-user-3');
+
   const { user, isUserLoading } = useUser();
 
   return (
@@ -99,40 +104,101 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 bg-card">
-          <div className="container grid items-center justify-center gap-4 px-4 text-center md:px-6">
-            <div className="space-y-3">
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight font-headline">Simple, All-Inclusive Pricing</h2>
-              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Choose a plan that fits your needs.
-              </p>
+        <section id="testimonials" className="w-full py-12 md:py-24 lg:py-32 bg-card">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Testimonials</div>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">What Our Customers Say</h2>
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  Hear from businesses who trust MingoSMTP for their critical email communications.
+                </p>
+              </div>
             </div>
-            <div className="mx-auto w-full max-w-sm">
+            <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-3 lg:gap-12">
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-2xl">Mingo Pro</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <div className="text-4xl font-bold">
-                    &#8358;148,500
-                    <span className="text-lg font-normal text-muted-foreground">
-                      /month
-                    </span>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      "MingoSMTP's AI optimizer is a game-changer. Our open rates have increased by 20% since we started using it. The analytics are incredibly detailed and easy to understand."
+                    </p>
+                    <div className="flex items-center gap-4">
+                      {testimonialUser1 && (
+                        <Avatar>
+                          <AvatarImage src={testimonialUser1.imageUrl} alt="@user1" data-ai-hint={testimonialUser1.imageHint} />
+                          <AvatarFallback>A</AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold">Alex Rivera</p>
+                        <p className="text-sm text-muted-foreground">CEO, Tech Innovators</p>
+                      </div>
+                    </div>
                   </div>
-                  <ul className="grid gap-2 text-left text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Unlimited Email Sends</li>
-                    <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Full Analytics Suite</li>
-                    <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> AI Delivery Optimizer</li>
-                    <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Dedicated Support</li>
-                  </ul>
-                  <Button className="w-full" asChild>
-                    <Link href="/dashboard/subscription">Choose Plan</Link>
-                  </Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      "The reliability is top-notch. We send thousands of transactional emails daily and haven't had a single issue. The customer support is also fantastic."
+                    </p>
+                    <div className="flex items-center gap-4">
+                      {testimonialUser2 && (
+                        <Avatar>
+                          <AvatarImage src={testimonialUser2.imageUrl} alt="@user2" data-ai-hint={testimonialUser2.imageHint} />
+                          <AvatarFallback>B</AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold">Brenda Smith</p>
+                        <p className="text-sm text-muted-foreground">CTO, E-Commerce Co.</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      "Setting up our sender domains was incredibly simple. The step-by-step guides for DNS records made the whole process seamless for our team."
+                    </p>
+                    <div className="flex items-center gap-4">
+                       {testimonialUser3 && (
+                        <Avatar>
+                          <AvatarImage src={testimonialUser3.imageUrl} alt="@user3" data-ai-hint={testimonialUser3.imageHint} />
+                          <AvatarFallback>C</AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold">Chen Liu</p>
+                        <p className="text-sm text-muted-foreground">Marketing Lead, SaaS Startup</p>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
           </div>
         </section>
+
+        <section id="cta" className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container grid items-center justify-center gap-4 px-4 text-center md:px-6">
+            <div className="space-y-3">
+              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight font-headline">Ready to Boost Your Email Delivery?</h2>
+              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                Create an account and start sending smarter emails today. No credit card required to get started.
+              </p>
+            </div>
+            <div className="mx-auto w-full max-w-sm space-y-2">
+              <Button size="lg" className="w-full" asChild>
+                <Link href="/register">Create Your Free Account</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-muted-foreground">&copy; 2024 MingoSMTP. All rights reserved.</p>
