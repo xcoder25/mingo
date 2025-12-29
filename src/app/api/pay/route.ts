@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 
 async function getFlutterwaveToken(clientId: string, clientSecret: string) {
   try {
-    const response = await fetch('https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token', {
+    const response = await fetch('https://idp-sandbox.flutterwave.com/realms/flutterwave/protocol/openid-connect/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
