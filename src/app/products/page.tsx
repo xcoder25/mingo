@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { encryptAES } from '@/lib/utils';
+import { randomUUID } from 'crypto';
 
 export interface Plan {
   id: string;
@@ -137,7 +138,7 @@ export default function ProductsPage() {
         throw new Error('Payment gateway is not configured correctly.');
       }
       
-      const nonce = Math.random().toString(36).substring(2, 14);
+      const nonce = window.crypto.randomUUID().substring(0, 12);
 
       const encryptedCardNumber = await encryptAES(cardNumber, encryptionKey, nonce);
       const encryptedExpiryMonth = await encryptAES(expiryMonth, encryptionKey, nonce);
@@ -327,3 +328,5 @@ export default function ProductsPage() {
     </div>
   );
 }
+
+    
