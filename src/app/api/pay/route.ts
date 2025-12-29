@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 
 async function getFlutterwaveToken(clientId: string, clientSecret: string) {
   try {
-    const response = await fetch('https://idp-sandbox.flutterwave.com/realms/flutterwave/protocol/openid-connect/token', {
+    const response = await fetch('https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const traceId = randomUUID();
     const idempotencyKey = randomUUID();
 
-    const pmResponse = await fetch('https://developersandbox-api.flutterwave.com/payment-methods', {
+    const pmResponse = await fetch('https://api.flutterwave.com/v3/payment-methods', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     const chargeIdempotencyKey = randomUUID();
     const chargeReference = `MingoSMTP-${Date.now()}`;
     
-    const chargeResponse = await fetch('https://developersandbox-api.flutterwave.com/charges', {
+    const chargeResponse = await fetch('https://api.flutterwave.com/v3/charges', {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${accessToken}`,
