@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCollection, useUser, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import type { Sender } from '@/lib/types';
-import { collection, serverTimestamp } from 'firebase/firestore';
-import { useState } from 'react';
+import { useCollection, useUser, useFirestore, useMemoFirebase, addDocumentNonBlocking, useDoc, setDocumentNonBlocking } from '@/firebase';
+import type { Sender, UserProfile } from '@/lib/types';
+import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Table,
@@ -32,7 +32,7 @@ export default function SendersPage() {
   const firestore = useFirestore();
   const [newDomain, setNewDomain] = useState('');
   const { toast } = useToast();
-
+  
   const sendersQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return collection(firestore, `users/${user.uid}/senders`);
@@ -62,16 +62,12 @@ export default function SendersPage() {
     setNewDomain('');
   };
   
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: 'Copied to clipboard!',
-    });
-  }
-
   return (
     <div className="grid gap-6">
-      <h1 className="text-3xl font-bold tracking-tight">Sender Domains</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Sender Settings</h1>
+      
+      <ProfileCard />
+      
       <Card>
         <CardHeader>
           <CardTitle>Add New Domain</CardTitle>
@@ -117,39 +113,82 @@ export default function SendersPage() {
                     <DnsRecordRow key={sender.id} sender={sender} />
                   ))
                 )}
+                 {!isLoading && senders?.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                            No domains added yet.
+                        </TableCell>
+                    </TableRow>
+                )}
               </TableBody>
             </Table>
         </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Manage your personal information.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-           <div className="grid gap-2">
-              <Label htmlFor="full-name">Full Name</Label>
-              <Input id="full-name" defaultValue={user?.displayName || ''} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue={user?.email || ''} readOnly />
-            </div>
-        </CardContent>
-        <CardFooter className="border-t px-6 py-4">
-            <Button>Save</Button>
-        </CardFooter>
       </Card>
     </div>
   );
 }
 
+function ProfileCard() {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const { toast } = useToast();
+
+    const userProfileRef = useMemoFirebase(() => {
+        if (!firestore || !user?.uid) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user?.uid]);
+
+    const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
+
+    const [fullName, setFullName] = useState(userProfile?.fullName || '');
+
+    useEffect(() => {
+        if(userProfile) {
+            setFullName(userProfile.fullName || '');
+        }
+    }, [userProfile]);
+
+    const handleSaveProfile = () => {
+        if (!userProfileRef) return;
+        setDocumentNonBlocking(userProfileRef, { fullName }, { merge: true });
+        toast({ title: 'Profile Updated', description: 'Your name has been updated successfully.'});
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+            <CardTitle>Profile</CardTitle>
+            <CardDescription>Manage your personal information.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+            <div className="grid gap-2">
+                <Label htmlFor="full-name">Full Name</Label>
+                <Input 
+                    id="full-name" 
+                    value={fullName} 
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={isLoading}
+                />
+                </div>
+                <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" defaultValue={user?.email || ''} readOnly disabled />
+                </div>
+            </CardContent>
+            <CardFooter className="border-t px-6 py-4">
+                <Button onClick={handleSaveProfile} disabled={isLoading || fullName === userProfile?.fullName}>Save</Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
 function DnsRecordRow({ sender }: { sender: Sender }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
+    toast({ title: 'Copied to clipboard!' });
   };
 
   return (
@@ -163,7 +202,7 @@ function DnsRecordRow({ sender }: { sender: Sender }) {
         </TableCell>
         <TableCell>
           <Button variant="outline" size="sm" onClick={() => setIsOpen(!isOpen)}>
-            {sender.status === 'verified' ? 'View Records' : 'Verify'}
+            {isOpen ? 'Hide Records' : (sender.status === 'verified' ? 'View Records' : 'Verify')}
           </Button>
         </TableCell>
       </TableRow>

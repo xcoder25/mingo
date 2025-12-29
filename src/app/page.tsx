@@ -1,13 +1,12 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { BarChart, Bot, CheckCircle, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function Home() {
@@ -16,28 +15,17 @@ export default function Home() {
   const testimonialUser2 = PlaceHolderImages.find((img) => img.id === 'testimonial-user-2');
   const testimonialUser3 = PlaceHolderImages.find((img) => img.id === 'testimonial-user-3');
 
-  const { user, isUserLoading } = useUser();
-
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-16 flex items-center bg-card shadow-sm sticky top-0 z-50">
         <Logo />
         <nav className="ml-auto flex gap-4 sm:gap-6">
-          {!isUserLoading && !user && (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/register">Get Started</Link>
-              </Button>
-            </>
-          )}
-          {!isUserLoading && user && (
-            <Button asChild>
-              <Link href="/dashboard">Dashboard</Link>
-            </Button>
-          )}
+          <Button variant="ghost" asChild>
+            <Link href="/login">Login</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/register">Get Started</Link>
+          </Button>
         </nav>
       </header>
       <main className="flex-1">
@@ -193,7 +181,7 @@ export default function Home() {
             </div>
             <div className="mx-auto w-full max-w-sm space-y-2">
               <Button size="lg" className="w-full" asChild>
-                <Link href="/register">Create Your Free Account</Link>
+                <Link href="/register">Get Started Free</Link>
               </Button>
             </div>
           </div>
