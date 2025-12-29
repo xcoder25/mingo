@@ -32,7 +32,6 @@ export async function POST(request: Request) {
     const { flutterwavePublicKey, flutterwaveSecretKey } = serverRuntimeConfig;
     
     if (!flutterwavePublicKey || !flutterwaveSecretKey) {
-      console.error('Flutterwave keys are not configured in next.config.js.');
       return NextResponse.json({ error: 'Payment processor is not configured correctly.' }, { status: 500 });
     }
 
@@ -74,13 +73,11 @@ export async function POST(request: Request) {
     if (responseData.status === 'success') {
       return NextResponse.json({ paymentLink: responseData.data.link });
     } else {
-      console.error('Flutterwave API Error Response:', responseData);
       const errorMessage = responseData.message || 'Failed to create payment link.';
       return NextResponse.json({ error: errorMessage }, { status: response.status });
     }
 
   } catch (error: any) {
-    console.error('Flutterwave API Handler Error:', error);
     return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
   }
 }
