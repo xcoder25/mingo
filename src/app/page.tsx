@@ -21,10 +21,10 @@ export default function Home() {
         <Logo />
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Button variant="ghost" asChild>
-            <Link href="/login">Login</Link>
+            <Link href="/products">Products</Link>
           </Button>
           <Button asChild>
-            <Link href="/register">Get Started</Link>
+            <Link href="#">Get Started</Link>
           </Button>
         </nav>
       </header>
@@ -53,7 +53,7 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button size="lg" asChild>
-                    <Link href="/register">Start Your Subscription</Link>
+                    <Link href="#">Start Your Subscription</Link>
                   </Button>
                 </div>
               </div>
@@ -181,7 +181,7 @@ export default function Home() {
             </div>
             <div className="mx-auto w-full max-w-sm space-y-2">
               <Button size="lg" className="w-full" asChild>
-                <Link href="/register">Get Started Free</Link>
+                <Link href="#">Get Started Free</Link>
               </Button>
             </div>
           </div>

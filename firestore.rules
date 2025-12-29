@@ -1,25 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    match /users/{userId} {
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
-    }
-
-    match /users/{userId}/analytics/{analyticsId} {
-      allow get, list, create, update, delete: if isSignedIn() && request.auth.uid == userId;
-    }
-    
-    match /users/{userId}/apiKeys/{apiKeyId} {
-      allow get, list, create, update, delete: if isSignedIn() && request.auth.uid == userId;
-    }
-    
-    match /users/{userId}/senders/{senderId} {
-      allow get, list, create, update, delete: if isSignedIn() && request.auth.uid == userId;
+    // Allow public read access to all documents
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false; // No writes allowed
     }
   }
 }
