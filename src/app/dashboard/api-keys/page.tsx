@@ -203,7 +203,7 @@ export default function ApiKeysPage() {
             <AlertDialogDescription>
               Please copy your new API key. For security, you will not be able to see it again.
             </AlertDialogDescription>
-          </header>
+          </AlertDialogHeader>
           <div className="p-4 bg-secondary rounded-md font-mono text-sm break-all relative">
             {generatedKey}
             <Button 
