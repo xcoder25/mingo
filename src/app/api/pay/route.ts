@@ -10,7 +10,12 @@ export async function POST(request: Request) {
     }
 
     const flutterwaveSecretKey = process.env.FLUTTERWAVE_SECRET_KEY;
+    
+    // Log the key to debug
+    console.log('Attempting to use Flutterwave Secret Key:', flutterwaveSecretKey ? `a key of length ${flutterwaveSecretKey.length}`: 'key is undefined');
+
     if (!flutterwaveSecretKey || flutterwaveSecretKey === 'YOUR_FLUTTERWAVE_SECRET_KEY_HERE') {
+      console.error('Flutterwave secret key is not configured.');
       throw new Error('Flutterwave secret key is not configured.');
     }
     
@@ -43,12 +48,13 @@ export async function POST(request: Request) {
     if (responseData.status === 'success') {
       return NextResponse.json({ paymentLink: responseData.data.link });
     } else {
+      console.error('Flutterwave API Error Response:', responseData);
       const errorMessage = responseData.message || 'Failed to create payment link.';
       return NextResponse.json({ error: errorMessage }, { status: response.status });
     }
 
   } catch (error: any) {
-    console.error('Flutterwave API Error:', error);
+    console.error('Flutterwave API Handler Error:', error);
     return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
   }
 }
