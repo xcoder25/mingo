@@ -15,10 +15,10 @@ function getFirebaseConfig() {
         measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     };
     
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-        // This log is helpful for developers but can be noisy in production.
-        // It's safe to keep for debugging but could be removed if desired.
-        console.error("Firebase config environment variables are not set!");
+    // Check if all required fields are present
+    if (Object.values(firebaseConfig).some(value => !value)) {
+        // This log is helpful for developers but can be noisy in production if env vars are not set on client.
+        // The calling function handles the null return gracefully.
         return null;
     }
     return firebaseConfig;
@@ -36,8 +36,7 @@ export function initializeFirebase() {
   if (!firebaseConfig) {
       // If config is still missing, we return a structure that indicates failure,
       // but without throwing an error, allowing the app to handle it gracefully.
-      // The useFirebase hook will throw an error if services are not available.
-      // This prevents the entire app from crashing on render.
+      // This prevents client-side errors when env vars are not present.
       return {
         firebaseApp: null,
         auth: null,
