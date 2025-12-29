@@ -16,9 +16,9 @@ import { DashboardNav } from '@/components/dashboard-nav';
 import { Logo } from '@/components/logo';
 import { LogOut, Settings } from 'lucide-react';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Subscription } from '@/lib/types';
 
 export default function DashboardLayout({
@@ -31,18 +31,8 @@ export default function DashboardLayout({
   const firestore = useFirestore();
   const router = useRouter();
 
-  const userSubscriptionsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(
-        collection(firestore, 'users', user.uid, 'subscriptions'), 
-        where('status', '==', 'active'),
-        orderBy('endDate', 'desc'),
-        limit(1)
-    );
-  }, [firestore, user]);
-
-  const { data: subscriptions, isLoading: isSubscriptionLoading } = useCollection<Subscription>(userSubscriptionsQuery);
-  const activeSubscription = subscriptions?.[0];
+  const [activeSubscription, setActiveSubscription] = useState<Subscription | null>(null);
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -51,10 +41,28 @@ export default function DashboardLayout({
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    if (!isSubscriptionLoading && (!subscriptions || subscriptions.length === 0)) {
+    async function fetchSubscription() {
+      if (!user || !firestore) return;
+      setIsSubscriptionLoading(true);
+      const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
+      const q = query(
+        subscriptionsRef,
+        where('status', '==', 'active'),
+        orderBy('endDate', 'desc'),
+        limit(1)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const subDoc = querySnapshot.docs[0];
+        setActiveSubscription({ id: subDoc.id, ...subDoc.data() } as Subscription);
+      } else {
         router.push('/dashboard/subscription');
+      }
+      setIsSubscriptionLoading(false);
     }
-  }, [subscriptions, isSubscriptionLoading, router]);
+    fetchSubscription();
+  }, [user, firestore, router]);
+
 
   const isLoading = isUserLoading || isSubscriptionLoading;
 
@@ -98,7 +106,7 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-16 items-center justify-between border-b bg-card px-6 md:justify-end">
+        <header className="flex h-16 items-center justify-end border-b bg-card px-6">
             <SidebarTrigger className="flex md:hidden" />
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon">
