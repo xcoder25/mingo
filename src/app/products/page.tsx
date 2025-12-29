@@ -29,6 +29,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+// Define Flutterwave types for TypeScript
+declare global {
+  interface Window {
+    FlutterwaveCheckout: (options: any) => void;
+  }
+}
+
 export interface Plan {
   id: string;
   name: string;
@@ -108,11 +115,11 @@ export default function ProductsPage() {
 
   const handlePayment = (plan: Plan, customerEmail: string) => {
     const amount = plan.priceUSD * currencyRates[currency];
-    const checkout = (window as any).FlutterwaveCheckout;
-    if (checkout) {
-      checkout({
+    
+    if (window.FlutterwaveCheckout) {
+      window.FlutterwaveCheckout({
         public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
-        tx_ref: `MingoSMTP-${Date.now()}-${Math.random()}`,
+        tx_ref: `MingoSMTP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         amount,
         currency,
         payment_options: 'card,mobilemoney,ussd',
@@ -139,7 +146,6 @@ export default function ProductsPage() {
           }
           setIsEmailDialogOpen(false);
           setEmail('');
-          // No close function is available in this manual setup, Flutterwave handles it.
         },
         onclose: () => {
           console.log('Payment modal closed.');
@@ -148,7 +154,8 @@ export default function ProductsPage() {
         },
       });
     } else {
-        console.error('Flutterwave checkout is not available.');
+      console.error('Flutterwave checkout script not loaded.');
+      alert('Payment service is currently unavailable. Please try again later.');
     }
   };
   
@@ -160,6 +167,8 @@ export default function ProductsPage() {
   const handleProceedToPayment = () => {
     if (selectedPlan && email) {
       handlePayment(selectedPlan, email);
+    } else {
+      alert('Please enter a valid email address.');
     }
   };
 
