@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -25,6 +25,11 @@ import type { UserProfile, EmailAnalytics } from '@/lib/types';
 import { subDays } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
+declare global {
+    interface Window {
+        FlutterwaveCheckout: (options: any) => void;
+    }
+}
 
 type Currency = {
   code: 'USD' | 'NGN' | 'GBP';
@@ -203,15 +208,47 @@ export default function SubscriptionPage() {
   }
 
   const handleSelectPlan = (plan: Plan) => {
-    toast({
-        title: 'Processing Payment...',
-        description: 'Simulating transaction with Flutterwave.'
-    });
+    if (!user || typeof window.FlutterwaveCheckout === 'undefined') {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not initialize payment. Please try again later."
+        });
+        return;
+    }
 
-    // Simulate a delay for the payment processing
-    setTimeout(() => {
-        handleSuccess(plan);
-    }, 3000);
+    const priceInSelectedCurrency = plan.priceUSD * selectedCurrency.rate;
+
+    window.FlutterwaveCheckout({
+        public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || 'FLWPUBK-922f8c9336b4e4636b4866b8a4eb30b9-X',
+        tx_ref: `${plan.id}-${Date.now()}`,
+        amount: priceInSelectedCurrency,
+        currency: selectedCurrency.code,
+        payment_options: "card,mobilemoney,ussd",
+        redirect_url: '', // This is handled by the callback
+        customer: {
+            email: user.email || '',
+            name: userProfile?.fullName || user.displayName || 'Valued Customer',
+        },
+        customizations: {
+            title: "MingoSMTP",
+            description: `Payment for ${plan.name}`,
+            logo: "https://www.mingosmtp.com/logo.png", // Replace with your actual logo URL
+        },
+        callback: function (data: any) {
+            console.log("Flutterwave success data:", data);
+            // On successful (simulated) payment, run the success logic
+            handleSuccess(plan);
+        },
+        onclose: function() {
+            // This is called when the user closes the modal
+            toast({
+                variant: 'default',
+                title: 'Payment window closed',
+                description: 'Your payment process was cancelled.'
+            });
+        },
+    });
   }
 
   if (isLoading) {

@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 import { Chatbot } from '@/components/chatbot';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'MingoSMTP',
@@ -27,6 +28,7 @@ export default function RootLayout({
           <Chatbot />
         </FirebaseClientProvider>
         <Toaster />
+        <Script src="https://checkout.flutterwave.com/v3.js" />
       </body>
     </html>
   );
