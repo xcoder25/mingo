@@ -104,7 +104,7 @@ export default function Home() {
             <div className="space-y-3">
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight font-headline">Simple, All-Inclusive Pricing</h2>
               <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                One plan with everything you need to succeed. No hidden fees.
+                Choose a plan that fits your needs.
               </p>
             </div>
             <div className="mx-auto w-full max-w-sm">
@@ -114,9 +114,9 @@ export default function Home() {
                 </CardHeader>
                 <CardContent className="grid gap-4">
                   <div className="text-4xl font-bold">
-                    &#8358;27,000
+                    &#8358;148,500
                     <span className="text-lg font-normal text-muted-foreground">
-                      /18 months
+                      /month
                     </span>
                   </div>
                   <ul className="grid gap-2 text-left text-sm text-muted-foreground">
@@ -126,7 +126,7 @@ export default function Home() {
                     <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Dedicated Support</li>
                   </ul>
                   <Button className="w-full" asChild>
-                    <Link href="/register">Subscribe Now</Link>
+                    <Link href="/dashboard/subscription">Choose Plan</Link>
                   </Button>
                 </CardContent>
               </Card>

@@ -7,6 +7,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
+<<<<<<< HEAD
 import { Bot, CreditCard, LayoutDashboard, BarChart, Send } from 'lucide-react';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
@@ -25,6 +26,32 @@ const proNavItems = [
 ]
 
 export function DashboardNav() {
+=======
+import { Bot, CreditCard, LayoutDashboard } from 'lucide-react';
+import type { Subscription } from '@/lib/types';
+
+type NavItem = {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  tooltip: string;
+  requiredPlanIds?: string[];
+};
+
+const navItems: NavItem[] = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', tooltip: 'Dashboard' },
+  { 
+    href: '/dashboard/optimize', 
+    icon: Bot, 
+    label: 'AI Optimizer', 
+    tooltip: 'AI Optimizer',
+    requiredPlanIds: ['pro', 'enterprise', 'growth', 'scale', 'ultimate'] 
+  },
+  { href: '/dashboard/subscription', icon: CreditCard, label: 'Subscription', tooltip: 'Subscription' },
+];
+
+export function DashboardNav({ activeSubscription }: { activeSubscription?: Subscription }) {
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
   const pathname = usePathname();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -41,9 +68,19 @@ export function DashboardNav() {
   const navItems = hasProSubscription ? [...defaultNavItems, ...proNavItems] : defaultNavItems;
 
 
+  const filteredNavItems = navItems.filter(item => {
+    if (!item.requiredPlanIds) {
+      return true; // Item doesn't require a subscription
+    }
+    if (!activeSubscription) {
+      return false; // User has no active subscription
+    }
+    return item.requiredPlanIds.includes(activeSubscription.planId);
+  });
+
   return (
     <SidebarMenu>
-      {navItems.map((item) => (
+      {filteredNavItems.map((item) => (
         <SidebarMenuItem key={item.href}>
           <SidebarMenuButton
             asChild

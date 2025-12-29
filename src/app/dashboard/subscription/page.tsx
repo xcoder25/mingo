@@ -20,8 +20,16 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
+<<<<<<< HEAD
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
+=======
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp, query, where, orderBy, limit } from 'firebase/firestore';
+import type { Subscription } from '@/lib/types';
+import { add } from 'date-fns';
+
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
 
 type Currency = {
   code: 'USD' | 'NGN' | 'GBP';
@@ -30,8 +38,8 @@ type Currency = {
   rate: number; // Rate against USD
 };
 
-type Plan = {
-  id: string;
+export type Plan = {
+  id: 'basic' | 'pro' | 'enterprise' | 'growth' | 'scale' | 'ultimate';
   name: string;
   description: string;
   priceUSD: number;
@@ -44,7 +52,7 @@ const currencies: Currency[] = [
   { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.8 },
 ];
 
-const plans: Plan[] = [
+export const plans: Plan[] = [
   {
     id: 'basic',
     name: 'Mingo Basic',
@@ -93,6 +101,19 @@ export default function SubscriptionPage() {
   );
   const { toast } = useToast();
 
+  const userSubscriptionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+        collection(firestore, 'users', user.uid, 'subscriptions'), 
+        where('status', '==', 'active'),
+        orderBy('endDate', 'desc'),
+        limit(1)
+    );
+  }, [firestore, user]);
+
+  const { data: subscriptions, isLoading } = useCollection<Subscription>(userSubscriptionsQuery);
+  const activeSubscription = subscriptions?.[0];
+
   const handleCurrencyChange = (currencyCode: string) => {
     const currency = currencies.find((c) => c.code === currencyCode);
     if (currency) {
@@ -120,6 +141,7 @@ export default function SubscriptionPage() {
 
     const initializePayment = usePaystackPayment(config);
 
+<<<<<<< HEAD
     const onSuccess = () => {
       if (!user || !firestore) return;
 
@@ -138,6 +160,29 @@ export default function SubscriptionPage() {
       };
       
       setDocumentNonBlocking(subscriptionRef, subscriptionData, { merge: true });
+=======
+    const onSuccess = (transaction: any) => {
+        if (!user) return;
+
+        const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
+        const startDate = new Date();
+        const endDate = add(startDate, { months: 1 });
+
+        const newSubscription: Omit<Subscription, 'id'> = {
+            userId: user.uid,
+            planId: plan.id,
+            name: plan.name,
+            status: 'active',
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            createdAt: serverTimestamp(),
+            price: plan.priceUSD,
+            currency: selectedCurrency.code,
+            transactionRef: transaction.reference,
+        };
+
+        addDocumentNonBlocking(subscriptionsRef, newSubscription);
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
 
       toast({
         title: 'Payment Successful!',
@@ -146,12 +191,25 @@ export default function SubscriptionPage() {
     };
 
     const onClose = () => {
+<<<<<<< HEAD
       console.log('closed');
     };
 
     return (
       <Button className="w-full" onClick={() => initializePayment({onSuccess, onClose})}>
         Choose Plan
+=======
+      console.log('Payment dialog closed');
+    };
+
+    const currentPlanPrice = plans.find((p) => p.id === activeSubscription?.planId)?.priceUSD || 0;
+
+    return (
+      <Button className="w-full" onClick={() => initializePayment({onSuccess, onClose})}>
+        {plan.priceUSD > currentPlanPrice
+          ? 'Upgrade'
+          : plan.priceUSD < currentPlanPrice ? 'Downgrade' : 'Subscribe'}
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
       </Button>
     );
   };
@@ -163,7 +221,8 @@ export default function SubscriptionPage() {
           <div>
             <CardTitle>Subscription</CardTitle>
             <CardDescription>
-              Manage your billing and subscription plan.
+              Manage your billing and subscription plan. Your current plan is{' '}
+              <span className="font-semibold text-primary">{activeSubscription ? activeSubscription.name : 'None'}</span>.
             </CardDescription>
           </div>
           <div className="w-[180px]">
@@ -189,10 +248,22 @@ export default function SubscriptionPage() {
             {plans.map((plan) => (
               <Card
                 key={plan.id}
+<<<<<<< HEAD
                 className="flex flex-col"
               >
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
+=======
+                className={`flex flex-col ${
+                  plan.id === activeSubscription?.planId ? 'border-primary ring-2 ring-primary' : ''
+                }`}
+              >
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-2">
+                    {plan.id === activeSubscription?.planId && (
+                      <Zap className="h-6 w-6 text-primary" />
+                    )}
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
                     <CardTitle>{plan.name}</CardTitle>
                   </div>
                   <CardDescription>{plan.description}</CardDescription>
@@ -214,7 +285,17 @@ export default function SubscriptionPage() {
                   </ul>
                 </CardContent>
                 <CardFooter>
+<<<<<<< HEAD
                   <PaystackButton plan={plan} />
+=======
+                  {plan.id === activeSubscription?.planId ? (
+                    <Button variant="outline" className="w-full" disabled>
+                      Current Plan
+                    </Button>
+                  ) : (
+                    <PaystackButton plan={plan} />
+                  )}
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
                 </CardFooter>
               </Card>
             ))}

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 diff --git a/node_modules/react-paystack/package.json b/node_modules/react-paystack/package.json
 index 5155b41..2750875 100644
 --- a/node_modules/react-paystack/package.json
@@ -8,5 +9,17 @@ index 5155b41..2750875 100644
    "peerDependencies": {
 -    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0"
 +    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+=======
+patch-package
+--- a/node_modules/react-paystack/package.json
++++ b/node_modules/react-paystack/package.json
+@@ -66,6 +66,6 @@
+   },
+   "peerDependencies": {
+-    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0",
+-    "react-dom": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0"
++    "react": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
++    "react-dom": "^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
    }
  }

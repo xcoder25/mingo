@@ -16,11 +16,18 @@ import { DashboardNav } from '@/components/dashboard-nav';
 import { Logo } from '@/components/logo';
 import { LogOut, Settings } from 'lucide-react';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+<<<<<<< HEAD
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { collection } from 'firebase/firestore';
 import type { Subscription } from '@/lib/types';
 
+=======
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import type { Subscription } from '@/lib/types';
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
 
 export default function DashboardLayout({
   children,
@@ -32,12 +39,27 @@ export default function DashboardLayout({
   const firestore = useFirestore();
   const router = useRouter();
 
+<<<<<<< HEAD
   const subscriptionsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return collection(firestore, `users/${user.uid}/subscriptions`);
   }, [firestore, user?.uid]);
 
   const { data: subscriptions, isLoading: isSubscriptionLoading } = useCollection<Subscription>(subscriptionsQuery);
+=======
+  const userSubscriptionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+        collection(firestore, 'users', user.uid, 'subscriptions'), 
+        where('status', '==', 'active'),
+        orderBy('endDate', 'desc'),
+        limit(1)
+    );
+  }, [firestore, user]);
+
+  const { data: subscriptions, isLoading: isSubscriptionLoading } = useCollection<Subscription>(userSubscriptionsQuery);
+  const activeSubscription = subscriptions?.[0];
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -45,6 +67,7 @@ export default function DashboardLayout({
     }
   }, [user, isUserLoading, router]);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (!isSubscriptionLoading && (!subscriptions || subscriptions.length === 0)) {
         router.push('/dashboard/subscription');
@@ -52,6 +75,11 @@ export default function DashboardLayout({
   }, [subscriptions, isSubscriptionLoading, router]);
   
   if (isUserLoading || !user || isSubscriptionLoading) {
+=======
+  const isLoading = isUserLoading || isSubscriptionLoading;
+
+  if (isLoading || !user) {
+>>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
     return null; // Or a loading spinner
   }
 
@@ -72,7 +100,7 @@ export default function DashboardLayout({
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <DashboardNav />
+          <DashboardNav activeSubscription={activeSubscription} />
         </SidebarContent>
         <SidebarFooter>
           <div className="flex flex-col gap-2 p-2">
@@ -82,8 +110,8 @@ export default function DashboardLayout({
                 <AvatarFallback>{user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="text-sm font-medium">{user.displayName || 'User'}</span>
-                <span className="text-xs text-muted-foreground">{user.email}</span>
+                <span className="text-sm font-medium">{user.displayName || user.email}</span>
+                <span className="text-xs text-muted-foreground">{activeSubscription ? activeSubscription.name : 'No active plan'}</span>
               </div>
             </div>
             <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
