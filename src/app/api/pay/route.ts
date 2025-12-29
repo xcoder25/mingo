@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +19,7 @@ export async function POST(request: Request) {
 
     if (!flutterwaveSecretKey || flutterwaveSecretKey === 'YOUR_FLUTTERWAVE_SECRET_KEY_HERE') {
       console.error('Flutterwave secret key is not configured.');
-      throw new Error('Flutterwave secret key is not configured.');
+      return NextResponse.json({ error: 'Flutterwave secret key is not configured.' }, { status: 500 });
     }
     
     const tx_ref = `MingoSMTP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -50,6 +53,7 @@ export async function POST(request: Request) {
     } else {
       console.error('Flutterwave API Error Response:', responseData);
       const errorMessage = responseData.message || 'Failed to create payment link.';
+      // The API often returns "Invalid authorization key" here
       return NextResponse.json({ error: errorMessage }, { status: response.status });
     }
 
