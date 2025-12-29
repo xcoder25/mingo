@@ -21,7 +21,7 @@ declare global {
 }
 
 export function handlePayment(details: PaymentDetails) {
-  const publicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PBF_PUB_KEY;
+  const publicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY;
   
   if (!publicKey) {
     console.error('Flutterwave public key is not set.');
