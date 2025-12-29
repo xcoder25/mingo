@@ -1,42 +1,20 @@
 import { NextResponse } from 'next/server';
-import { initializeAdmin } from '@/firebase/admin';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-
-// Initialize Firebase Admin SDK
-const { firestore } = initializeAdmin();
 
 // This is a mock API route. In a real app, this would use a transactional email service
 // like SendGrid, AWS SES, or Postmark to actually send the email.
+// The Firebase Admin SDK has been removed to allow deployment without a service account key.
+// As a result, API key validation is currently bypassed.
 
 export async function POST(request: Request) {
   const apiKey = request.headers.get('Authorization')?.split('Bearer ')[1];
   
+  // A basic check for the presence of an API key.
+  // The actual validation against Firestore is removed.
   if (!apiKey) {
     return NextResponse.json({ error: 'Unauthorized: Missing API key' }, { status: 401 });
   }
 
-  // Find the user associated with the API key
-  // This is a simplified lookup. In a production app, you might have a more direct way
-  // to query keys, potentially from a different collection or database optimized for this.
-  const allUsers = await firestore.collection('users').get();
-  let ownerId: string | null = null;
-  let keyValid = false;
-  
-  for (const userDoc of allUsers.docs) {
-    const apiKeysRef = collection(firestore, 'users', userDoc.id, 'apiKeys');
-    const q = query(apiKeysRef, where('key', '==', apiKey), limit(1));
-    const querySnapshot = await getDocs(q);
-    
-    if (!querySnapshot.empty) {
-      keyValid = true;
-      ownerId = userDoc.id;
-      break; 
-    }
-  }
-
-  if (!keyValid || !ownerId) {
-    return NextResponse.json({ error: 'Unauthorized: Invalid API key' }, { status: 401 });
-  }
+  // The key is not validated, but we proceed as if it were for mock purposes.
 
   try {
     const body = await request.json();
@@ -48,16 +26,11 @@ export async function POST(request: Request) {
     }
 
     // --- MOCK SENDING LOGIC ---
-    // Here, you would integrate your email sending service.
-    // For now, we'll just log the request and return a success response.
-    console.log('--- MOCK EMAIL SEND ---');
-    console.log('API Key Owner:', ownerId);
+    console.log('--- MOCK EMAIL SEND (API Key NOT Validated) ---');
     console.log('To:', to);
     console.log('From:', from);
     console.log('Subject:', subject);
     console.log('-----------------------');
-
-    // You could also add this request to a "sent_emails" collection in Firestore for tracking.
 
     return NextResponse.json({ 
         message: 'Email request received and processed (mock).',
@@ -65,6 +38,10 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
+    // Check if the error is due to JSON parsing
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: 'Invalid JSON in request body.' }, { status: 400 });
+    }
     console.error('API Send Error:', error);
     return NextResponse.json({ error: 'An internal error occurred.' }, { status: 500 });
   }
