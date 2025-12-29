@@ -1,14 +1,18 @@
+
 const isProd = process.env.NODE_ENV === 'production';
 
 // URLs
 const SANDBOX_AUTH_URL = 'https://idp-sandbox.flutterwave.com/oauth2/token';
 const PROD_AUTH_URL = 'https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token';
-const API_URL = 'https://api.flutterwave.com/v3';
+
+const SANDBOX_API_URL = 'https://api.flutterwave.com/v3';
+const PROD_API_URL = 'https://api.flutterwave.com/v3';
+
 
 // --- SERVER-SIDE CONFIG ---
 // These values are only accessible on the server.
 export const FLW_AUTH_URL = isProd ? PROD_AUTH_URL : SANDBOX_AUTH_URL;
-export const FLW_API_URL = API_URL;
+export const FLW_API_URL = isProd ? PROD_API_URL : SANDBOX_API_URL;
 
 export const FLW_CLIENT_ID = isProd
   ? process.env.FLW_PROD_CLIENT_ID
