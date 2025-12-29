@@ -30,6 +30,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  serverRuntimeConfig: {
+    // Will only be available on the server side
+    flutterwaveSecretKey: process.env.FLUTTERWAVE_SECRET_KEY,
+  },
 };
 
 export default nextConfig;

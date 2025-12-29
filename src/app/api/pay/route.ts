@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import getConfig from 'next/config';
 
 export async function POST(request: Request) {
   try {
+    const { serverRuntimeConfig } = getConfig();
     const body = await request.json();
     const { amount, currency, email, planName } = body;
 
@@ -12,14 +11,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required payment information.' }, { status: 400 });
     }
 
-    const flutterwaveSecretKey = process.env.FLUTTERWAVE_SECRET_KEY;
-    
-    // Log the key to debug
-    console.log('Attempting to use Flutterwave Secret Key:', flutterwaveSecretKey ? `a key of length ${flutterwaveSecretKey.length}`: 'key is undefined');
+    const flutterwaveSecretKey = serverRuntimeConfig.flutterwaveSecretKey;
 
-    if (!flutterwaveSecretKey || flutterwaveSecretKey === 'YOUR_FLUTTERWAVE_SECRET_KEY_HERE') {
-      console.error('Flutterwave secret key is not configured.');
-      return NextResponse.json({ error: 'Flutterwave secret key is not configured.' }, { status: 500 });
+    if (!flutterwaveSecretKey) {
+      console.error('Flutterwave secret key is not configured in next.config.js.');
+      return NextResponse.json({ error: 'Payment processor is not configured correctly.' }, { status: 500 });
     }
     
     const tx_ref = `MingoSMTP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -53,7 +49,6 @@ export async function POST(request: Request) {
     } else {
       console.error('Flutterwave API Error Response:', responseData);
       const errorMessage = responseData.message || 'Failed to create payment link.';
-      // The API often returns "Invalid authorization key" here
       return NextResponse.json({ error: errorMessage }, { status: response.status });
     }
 
