@@ -223,10 +223,11 @@ export default function SubscriptionPage() {
                       Current Plan
                     </Button>
                   ) : (
-                    <Button className="w-full" onClick={() => handleSelectPlan(plan)}>
-                      {plan.priceUSD > currentPlanPrice
-                        ? 'Upgrade'
-                        : plan.priceUSD < currentPlanPrice ? 'Downgrade' : 'Subscribe'}
+                    <Button className="w-full" onClick={() => handleSelectPlan(plan)} disabled={!!activeSubscription}>
+                      {activeSubscription 
+                        ? (plan.priceUSD > currentPlanPrice ? 'Upgrade Unavailable' : 'Downgrade Unavailable')
+                        : 'Subscribe'
+                      }
                     </Button>
                   )}
                 </CardFooter>
