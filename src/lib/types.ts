@@ -6,6 +6,7 @@ export type UserProfile = {
     fullName?: string;
     subscriptionPlan?: 'basic' | 'pro' | 'enterprise';
     subscriptionStatus?: 'active' | 'inactive';
+    hasMapApiAccess?: boolean;
     createdAt: string | Timestamp;
 };
 

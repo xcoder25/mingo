@@ -7,8 +7,12 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Bot, CreditCard, LayoutDashboard, BarChart, Send, Key } from 'lucide-react';
+import { Bot, CreditCard, LayoutDashboard, BarChart, Send, Key, Map } from 'lucide-react';
 import type { Plan } from '@/app/dashboard/subscription/page';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import type { UserProfile } from '@/lib/types';
+import { doc } from 'firebase/firestore';
+
 
 type NavItem = {
   href: string;
@@ -16,6 +20,7 @@ type NavItem = {
   label: string;
   tooltip: string;
   requiredPlanIds?: string[];
+  requiresMapAccess?: boolean;
 };
 
 const navItems: NavItem[] = [
@@ -29,17 +34,38 @@ const navItems: NavItem[] = [
     tooltip: 'AI Optimizer',
     requiredPlanIds: ['pro', 'enterprise'] 
   },
+  {
+    href: '/dashboard/map',
+    icon: Map,
+    label: 'Map Analytics',
+    tooltip: 'Map Analytics',
+    requiresMapAccess: true,
+  },
   { href: '/dashboard/api-keys', icon: Key, label: 'API Keys', tooltip: 'API Keys' },
   { href: '/dashboard/subscription', icon: CreditCard, label: 'Subscription', tooltip: 'Subscription' },
 ];
 
 export function DashboardNav({ activePlan }: { activePlan: Plan | null | undefined }) {
   const pathname = usePathname();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return doc(firestore, `users/${user.uid}`);
+  }, [firestore, user?.uid]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
   const filteredNavItems = navItems.filter(item => {
+    // Pro/Enterprise features
     if (item.requiredPlanIds) {
         if (!activePlan) return false;
         return item.requiredPlanIds.includes(activePlan.id);
+    }
+    // Map API feature
+    if (item.requiresMapAccess) {
+        return userProfile?.hasMapApiAccess === true;
     }
     return true;
   });
