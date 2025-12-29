@@ -49,10 +49,11 @@ export default function DashboardLayout({
   }, [user, isUserLoading, router]);
   
   useEffect(() => {
-    // Ensure pathname is available before using it
-    if (!pathname) return;
+    if (!pathname || isProfileLoading || !userProfile) {
+      return;
+    }
 
-    if (!isProfileLoading && userProfile && userProfile.subscriptionStatus !== 'active' && !pathname.endsWith('subscription')) {
+    if (userProfile.subscriptionStatus !== 'active' && !pathname.endsWith('subscription')) {
         if (pathname.startsWith('/dashboard/') && pathname !== '/dashboard/subscription') {
           router.push('/dashboard/subscription');
         }
