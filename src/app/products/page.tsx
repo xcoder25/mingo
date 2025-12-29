@@ -45,6 +45,7 @@ export interface Plan {
   priceUSD: number;
   features: string[];
   isOneTimePayment?: boolean;
+  duration?: string;
 }
 
 export const plans: Plan[] = [
@@ -54,6 +55,7 @@ export const plans: Plan[] = [
     description: 'For individuals and small teams.',
     priceUSD: 37.5,
     features: ['10,000 Email Sends/month', 'Basic Analytics', 'Standard Support'],
+    duration: '/18mo'
   },
   {
     id: 'pro',
@@ -66,6 +68,19 @@ export const plans: Plan[] = [
       'AI Delivery Optimizer',
       'Dedicated Support',
     ],
+    duration: '/18mo'
+  },
+    {
+    id: 'standard-12',
+    name: 'Mingo Standard',
+    description: 'Ideal for focused projects.',
+    priceUSD: 21.62,
+    features: [
+      '50,000 Email Sends/month',
+      'Full Analytics Suite',
+      'Standard Support',
+    ],
+    duration: '/12mo'
   },
   {
     id: 'enterprise',
@@ -80,6 +95,7 @@ export const plans: Plan[] = [
       'Advanced API Access',
       'Team Management',
     ],
+    duration: '/18mo'
   },
   {
     id: 'map-api',
@@ -208,10 +224,10 @@ export default function ProductsPage() {
               Our Pricing Plans
             </h1>
             <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Choose the perfect plan for your needs. All subscriptions are for 18 months.
+              Choose the perfect plan for your needs. Subscriptions are available for 12 or 18 months.
             </p>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
             {plans.map((plan) => (
               <Card key={plan.id} className="flex flex-col">
                 <CardHeader className="pb-4">
@@ -222,7 +238,7 @@ export default function ProductsPage() {
                   <div className="text-4xl font-bold">
                     {getPrice(plan.priceUSD)}
                     {!plan.isOneTimePayment && (
-                      <span className="text-base font-normal text-muted-foreground">/18mo</span>
+                      <span className="text-base font-normal text-muted-foreground">{plan.duration}</span>
                     )}
                   </div>
                   <ul className="grid gap-3 text-sm text-muted-foreground pt-6">
