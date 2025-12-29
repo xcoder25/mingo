@@ -16,6 +16,8 @@ function getFirebaseConfig() {
     };
     
     if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+        // This log is helpful for developers but can be noisy in production.
+        // It's safe to keep for debugging but could be removed if desired.
         console.error("Firebase config environment variables are not set!");
         return null;
     }
