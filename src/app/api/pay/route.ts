@@ -9,8 +9,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required payment information.' }, { status: 400 });
     }
 
-    const flutterwaveSecretKey = process.env.FLUTTERWAVE_CLIENT_SECRET;
-    if (!flutterwaveSecretKey) {
+    const flutterwaveSecretKey = process.env.FLUTTERWAVE_SECRET_KEY;
+    if (!flutterwaveSecretKey || flutterwaveSecretKey === 'YOUR_FLUTTERWAVE_SECRET_KEY_HERE') {
       throw new Error('Flutterwave secret key is not configured.');
     }
     
