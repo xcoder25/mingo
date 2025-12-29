@@ -137,11 +137,9 @@ export default function ProductsPage() {
             console.error('Payment was not successful. Status:', response.status);
             alert('Payment was not successful. Please try again.');
           }
-          if (checkout.close) {
-            checkout.close();
-          }
           setIsEmailDialogOpen(false);
           setEmail('');
+          // No close function is available in this manual setup, Flutterwave handles it.
         },
         onclose: () => {
           console.log('Payment modal closed.');
@@ -153,7 +151,7 @@ export default function ProductsPage() {
         console.error('Flutterwave checkout is not available.');
     }
   };
-
+  
   const openEmailDialog = (plan: Plan) => {
     setSelectedPlan(plan);
     setIsEmailDialogOpen(true);
