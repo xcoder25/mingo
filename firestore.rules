@@ -152,6 +152,18 @@ service cloud.firestore {
         allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
         allow delete: if isExistingOwner(userId);
       }
+
+      /**
+       * @description Manages a user's API keys.
+       * @path /users/{userId}/apiKeys/{apiKeyId}
+       */
+      match /apiKeys/{apiKeyId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
+        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
+        allow delete: if isExistingOwner(userId);
+      }
     }
   }
 }

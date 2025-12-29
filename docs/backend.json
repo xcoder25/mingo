@@ -180,12 +180,49 @@
         "status",
         "createdAt"
       ]
+    },
+    "ApiKey": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApiKey",
+      "type": "object",
+      "description": "Represents a user's API key for programmatic access.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the API key."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User."
+        },
+        "name": {
+          "type": "string",
+          "description": "A user-defined name for the key."
+        },
+        "key": {
+          "type": "string",
+          "description": "The API key value (should be hashed in a real app)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the key was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "key",
+        "createdAt"
+      ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "phone"
     ]
   },
   "firestore": {
@@ -262,6 +299,26 @@
             {
               "name": "senderId",
               "description": "The unique identifier for the sender domain."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/apiKeys/{apiKeyId}",
+        "definition": {
+          "entityName": "ApiKey",
+          "schema": {
+            "$ref": "#/backend/entities/ApiKey"
+          },
+          "description": "Stores API keys for each user. Path-based ownership inherited from `/users/{userId}` ensures only the authenticated user can manage their API keys.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "apiKeyId",
+              "description": "The unique identifier for the API key."
             }
           ]
         }

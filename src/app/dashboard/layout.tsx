@@ -73,7 +73,7 @@ export default function DashboardLayout({
         // if user is not loading and there's no user, there is no subscription.
         setIsSubscriptionLoading(false);
     }
-  }, [user, firestore, isUserLoading, router]);
+  }, [user, firestore, router]);
 
 
   const isLoading = isUserLoading || isSubscriptionLoading;
@@ -103,10 +103,10 @@ export default function DashboardLayout({
             <div className="flex items-center gap-2 rounded-md p-2 bg-secondary">
               <Avatar className="h-9 w-9">
                 <AvatarImage src="https://picsum.photos/seed/avatar/40/40" alt="@user" data-ai-hint="avatar" />
-                <AvatarFallback>{user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                <AvatarFallback>{user?.email?.[0]?.toUpperCase() || user?.phoneNumber?.[0] || 'U'}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="text-sm font-medium">{user.displayName || user.email}</span>
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden truncate">
+                <span className="text-sm font-medium truncate">{user.displayName || user.email || user.phoneNumber}</span>
                 <span className="text-xs text-muted-foreground">{activeSubscription ? activeSubscription.name : 'No active plan'}</span>
               </div>
             </div>
@@ -127,7 +127,7 @@ export default function DashboardLayout({
                 </Button>
                 <Avatar className="h-9 w-9">
                     <AvatarImage src="https://picsum.photos/seed/avatar/40/40" alt="@user" data-ai-hint="avatar" />
-                    <AvatarFallback>{user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                    <AvatarFallback>{user?.email?.[0]?.toUpperCase() || user?.phoneNumber?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
             </div>
         </header>

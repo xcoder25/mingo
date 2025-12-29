@@ -7,11 +7,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Bot, CreditCard, LayoutDashboard, BarChart, Send } from 'lucide-react';
+import { Bot, CreditCard, LayoutDashboard, BarChart, Send, Key } from 'lucide-react';
 import type { Subscription } from '@/lib/types';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-
 
 type NavItem = {
   href: string;
@@ -32,18 +29,17 @@ const navItems: NavItem[] = [
     tooltip: 'AI Optimizer',
     requiredPlanIds: ['pro', 'enterprise'] 
   },
+  { href: '/dashboard/api-keys', icon: Key, label: 'API Keys', tooltip: 'API Keys' },
   { href: '/dashboard/subscription', icon: CreditCard, label: 'Subscription', tooltip: 'Subscription' },
 ];
 
-export function DashboardNav({ activeSubscription }: { activeSubscription?: Subscription }) {
+export function DashboardNav({ activeSubscription }: { activeSubscription: Subscription | null }) {
   const pathname = usePathname();
-  const { user } = useUser();
-  const firestore = useFirestore();
 
   const filteredNavItems = navItems.filter(item => {
-    if (item.href === '/dashboard/optimize') {
+    if (item.requiredPlanIds) {
         if (!activeSubscription) return false;
-        return item.requiredPlanIds?.includes(activeSubscription.planId);
+        return item.requiredPlanIds.includes(activeSubscription.planId);
     }
     return true;
   });

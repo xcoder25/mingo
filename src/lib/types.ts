@@ -44,3 +44,11 @@ export type Sender = {
     dmarcRecord: string;
     createdAt: any; // Firestore Timestamp
 }
+
+export type ApiKey = {
+    id: string;
+    userId: string;
+    name: string;
+    key: string; // This would be hashed in a real app
+    createdAt: string | Timestamp;
+}
