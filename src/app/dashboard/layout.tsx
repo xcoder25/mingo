@@ -51,10 +51,10 @@ export default function DashboardLayout({
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    if (!isSubscriptionLoading && (!subscriptions || subscriptions.length === 0)) {
+    if (!isUserLoading && user && !isSubscriptionLoading && (!subscriptions || subscriptions.length === 0)) {
         router.push('/dashboard/subscription');
     }
-  }, [subscriptions, isSubscriptionLoading, router]);
+  }, [user, isUserLoading, subscriptions, isSubscriptionLoading, router]);
 
   const isLoading = isUserLoading || isSubscriptionLoading;
 
