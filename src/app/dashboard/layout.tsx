@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { Logo } from '@/components/logo';
 import { LogOut, Settings } from 'lucide-react';
-import { useAuth, useUser, useFirestore } from '@/firebase';
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { Subscription } from '@/lib/types';
 
 export default function DashboardLayout({
@@ -30,9 +30,19 @@ export default function DashboardLayout({
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
-  
-  const [activeSubscription, setActiveSubscription] = useState<Subscription | null>(null);
-  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
+
+  const userSubscriptionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+        collection(firestore, 'users', user.uid, 'subscriptions'), 
+        where('status', '==', 'active'),
+        orderBy('endDate', 'desc'),
+        limit(1)
+    );
+  }, [firestore, user]);
+
+  const { data: subscriptions, isLoading: isSubscriptionLoading } = useCollection<Subscription>(userSubscriptionsQuery);
+  const activeSubscription = subscriptions?.[0];
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -41,40 +51,10 @@ export default function DashboardLayout({
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    if (user && firestore) {
-      const fetchSubscription = async () => {
-        setIsSubscriptionLoading(true);
-        try {
-          const subscriptionsRef = collection(firestore, 'users', user.uid, 'subscriptions');
-          const q = query(
-            subscriptionsRef,
-            where('status', '==', 'active'),
-            orderBy('endDate', 'desc'),
-            limit(1)
-          );
-          const querySnapshot = await getDocs(q);
-          if (!querySnapshot.empty) {
-            const subDoc = querySnapshot.docs[0];
-            setActiveSubscription({ id: subDoc.id, ...subDoc.data() } as Subscription);
-          } else {
-            setActiveSubscription(null);
-            router.push('/dashboard/subscription');
-          }
-        } catch (error) {
-          console.error("Error fetching subscription in layout:", error);
-          // Optional: handle error state
-        } finally {
-          setIsSubscriptionLoading(false);
-        }
-      };
-
-      fetchSubscription();
-    } else if (!isUserLoading) {
-        // if user is not loading and there's no user, there is no subscription.
-        setIsSubscriptionLoading(false);
+    if (!isSubscriptionLoading && (!subscriptions || subscriptions.length === 0)) {
+        router.push('/dashboard/subscription');
     }
-  }, [user, firestore, router]);
-
+  }, [subscriptions, isSubscriptionLoading, router]);
 
   const isLoading = isUserLoading || isSubscriptionLoading;
 
@@ -85,7 +65,7 @@ export default function DashboardLayout({
   const handleLogout = () => {
     auth.signOut();
   };
-  
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -103,10 +83,10 @@ export default function DashboardLayout({
             <div className="flex items-center gap-2 rounded-md p-2 bg-secondary">
               <Avatar className="h-9 w-9">
                 <AvatarImage src="https://picsum.photos/seed/avatar/40/40" alt="@user" data-ai-hint="avatar" />
-                <AvatarFallback>{user?.email?.[0]?.toUpperCase() || user?.phoneNumber?.[0] || 'U'}</AvatarFallback>
+                <AvatarFallback>{user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col group-data-[collapsible=icon]:hidden truncate">
-                <span className="text-sm font-medium truncate">{user.displayName || user.email || user.phoneNumber}</span>
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                <span className="text-sm font-medium">{user.displayName || user.email}</span>
                 <span className="text-xs text-muted-foreground">{activeSubscription ? activeSubscription.name : 'No active plan'}</span>
               </div>
             </div>
@@ -118,7 +98,7 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-16 items-center justify-between border-b bg-card px-4 sm:px-6 md:justify-end">
+        <header className="flex h-16 items-center justify-between border-b bg-card px-6 md:justify-end">
             <SidebarTrigger className="flex md:hidden" />
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon">
@@ -127,7 +107,7 @@ export default function DashboardLayout({
                 </Button>
                 <Avatar className="h-9 w-9">
                     <AvatarImage src="https://picsum.photos/seed/avatar/40/40" alt="@user" data-ai-hint="avatar" />
-                    <AvatarFallback>{user?.email?.[0]?.toUpperCase() || user?.phoneNumber?.[0] || 'U'}</AvatarFallback>
+                    <AvatarFallback>{user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
             </div>
         </header>

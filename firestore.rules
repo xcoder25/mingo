@@ -113,6 +113,7 @@ service cloud.firestore {
 
       /**
        * @description Manages a user's subscription records.
+<<<<<<< HEAD
        * @path /users/{userId}/subscriptions/{subscriptionId}
        * @allow (create) An authenticated user can create a subscription document for themselves.
        * @deny (get) An authenticated user cannot access subscriptions belonging to another user.
@@ -121,10 +122,18 @@ service cloud.firestore {
       match /subscriptions/{subscriptionId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
+=======
+       * @path /users/{userId}/subscriptions
+       * @allow (list) An authenticated user can list their own subscriptions.
+       */
+      match /subscriptions/{subscriptionId} {
+        allow get: if isOwner(userId);
+>>>>>>> 8653dcd (Try fixing this error: `Runtime FirebaseError: Missing or insufficient p)
         allow create: if isOwner(userId) && isCreatingChildDocument(userId);
         allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
         allow delete: if isExistingOwner(userId);
       }
+<<<<<<< HEAD
 
       /**
        * @description Manages a user's email analytics data.
@@ -164,6 +173,29 @@ service cloud.firestore {
         allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
         allow delete: if isExistingOwner(userId);
       }
+=======
+      
+      match /subscriptions/{subscriptionId} {
+        allow list: if isOwner(userId);
+      }
+
+
+      /**
+       * @description Manages a user's email analytics data.
+       * @path /users/{userId}/email_analytics
+       * @allow (list) An authenticated user can list their own email analytics data.
+       */
+       match /email_analytics/{emailAnalyticsId} {
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isCreatingChildDocument(userId);
+        allow update: if isExistingOwner(userId) && isUpdatingChildDocument();
+        allow delete: if isExistingOwner(userId);
+       }
+       
+       match /email_analytics/{emailAnalyticsId} {
+         allow list: if isOwner(userId);
+       }
+>>>>>>> 8653dcd (Try fixing this error: `Runtime FirebaseError: Missing or insufficient p)
     }
   }
 }
