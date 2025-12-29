@@ -14,20 +14,11 @@ import {
 } from '@/components/ui/chart';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Bar, BarChart, ResponsiveContainer } from 'recharts';
 import { Mail, CheckCircle, AlertCircle, Eye, MousePointerClick } from 'lucide-react';
-<<<<<<< HEAD
-import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import type { WithId } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
-import { useMemo } from 'react';
-import type { EmailAnalytics } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
-=======
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import type { EmailAnalytics } from '@/lib/types';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
 
 const chartConfig = {
   sent: {
@@ -53,66 +44,6 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
-<<<<<<< HEAD
-  const { user } = useUser();
-  const firestore = useFirestore();
-
-  const analyticsQuery = useMemoFirebase(() => {
-    if (!firestore || !user?.uid) return null;
-    return query(
-      collection(firestore, `users/${user.uid}/email_analytics`),
-      orderBy('date', 'desc'),
-      limit(6)
-    );
-  }, [firestore, user?.uid]);
-
-  const { data: analyticsData, isLoading } = useCollection<EmailAnalytics>(analyticsQuery);
-
-  const { chartData, totals, percentages } = useMemo(() => {
-    if (!analyticsData) {
-      return { chartData: [], totals: {}, percentages: {} };
-    }
-
-    const reversedData = [...analyticsData].reverse();
-
-    const chartData = reversedData.map((item) => ({
-      month: format(parseISO(item.date), 'MMM'), // format date to month abbreviation
-      sent: item.sent,
-      delivered: item.delivered,
-      opened: item.opened,
-    }));
-
-    const totals = analyticsData.reduce(
-      (acc, curr) => {
-        acc.sent += curr.sent;
-        acc.delivered += curr.delivered;
-        acc.bounced += curr.bounced;
-        acc.opened += curr.opened;
-        return acc;
-      },
-      { sent: 0, delivered: 0, bounced: 0, opened: 0, clickThrough: 0 }
-    );
-    
-    // This is a simplified calculation for CTR for the last data point
-    const lastClickThrough = analyticsData[0]?.clickThroughRate || 0;
-    totals.clickThrough = lastClickThrough;
-
-
-    const percentages = {
-      delivered: totals.sent > 0 ? (totals.delivered / totals.sent) * 100 : 0,
-      bounced: totals.sent > 0 ? (totals.bounced / totals.sent) * 100 : 0,
-      opened: totals.delivered > 0 ? (totals.opened / totals.delivered) * 100 : 0,
-    };
-
-    return { chartData, totals, percentages };
-  }, [analyticsData]);
-  
-
-  if (isLoading) {
-    return <div>Loading dashboard...</div>
-  }
-
-=======
     const { user } = useUser();
     const firestore = useFirestore();
 
@@ -131,7 +62,7 @@ export default function DashboardPage() {
         if (!analyticsData) return [];
         return analyticsData.slice().reverse().map(item => ({
             ...item,
-            date: format(new Date(item.date), 'MMM d'),
+            date: format(new Date(item.date as string), 'MMM d'),
         }));
     }, [analyticsData]);
 
@@ -151,7 +82,6 @@ export default function DashboardPage() {
         return <div>Loading dashboard...</div>
     }
 
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
   return (
     <div className="grid gap-4 md:gap-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -161,13 +91,8 @@ export default function DashboardPage() {
                     <Mail className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-<<<<<<< HEAD
-                    <div className="text-2xl font-bold">{totals.sent?.toLocaleString() || '0'}</div>
-                    <p className="text-xs text-muted-foreground">Total emails processed</p>
-=======
                     <div className="text-2xl font-bold">{totalSent.toLocaleString()}</div>
                     <p className="text-xs text-muted-foreground">Total emails queued</p>
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
                 </CardContent>
             </Card>
             <Card>
@@ -176,11 +101,7 @@ export default function DashboardPage() {
                     <CheckCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-<<<<<<< HEAD
-                    <div className="text-2xl font-bold">{totals.delivered?.toLocaleString() || '0'} ({percentages.delivered?.toFixed(1) || '0'}%)</div>
-=======
                     <div className="text-2xl font-bold">{totalDelivered.toLocaleString()} ({deliveryPercentage.toFixed(1)}%)</div>
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
                     <p className="text-xs text-muted-foreground">Successfully reached inbox</p>
                 </CardContent>
             </Card>
@@ -190,11 +111,7 @@ export default function DashboardPage() {
                     <AlertCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-<<<<<<< HEAD
-                    <div className="text-2xl font-bold">{totals.bounced?.toLocaleString() || '0'} ({percentages.bounced?.toFixed(1) || '0'}%)</div>
-=======
                     <div className="text-2xl font-bold">{totalBounced.toLocaleString()} ({bouncePercentage.toFixed(1)}%)</div>
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
                     <p className="text-xs text-muted-foreground">Failed deliveries</p>
                 </CardContent>
             </Card>
@@ -204,11 +121,7 @@ export default function DashboardPage() {
                     <Eye className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-<<<<<<< HEAD
-                    <div className="text-2xl font-bold">{percentages.opened?.toFixed(1) || '0'}%</div>
-=======
                     <div className="text-2xl font-bold">{openRate.toFixed(1)}%</div>
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
                     <p className="text-xs text-muted-foreground">Based on delivered emails</p>
                 </CardContent>
             </Card>
@@ -218,13 +131,8 @@ export default function DashboardPage() {
                     <MousePointerClick className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-<<<<<<< HEAD
-                    <div className="text-2xl font-bold">{totals.clickThrough?.toFixed(1) || '0'}%</div>
-                    <p className="text-xs text-muted-foreground">Latest campaign CTR</p>
-=======
                     <div className="text-2xl font-bold">{clickThroughRate.toFixed(1)}%</div>
                     <p className="text-xs text-muted-foreground">Based on opened emails</p>
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
                 </CardContent>
             </Card>
         </div>

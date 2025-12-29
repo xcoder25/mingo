@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 import type { Timestamp } from "firebase/firestore";
 
 export type User = {
@@ -10,20 +8,10 @@ export type User = {
     createdAt: string | Timestamp;
     updatedAt: string | Timestamp;
 };
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
 
 export type Subscription = {
     id: string;
     userId: string;
-<<<<<<< HEAD
-    status: 'active' | 'inactive' | 'cancelled';
-    planName: string;
-    price: number;
-    currency: string;
-    startDate: any; // Firestore Timestamp
-    endDate: any; // Firestore Timestamp
-    createdAt: any; // Firestore Timestamp
-=======
     planId: 'basic' | 'pro' | 'enterprise' | 'growth' | 'scale' | 'ultimate';
     name: string;
     status: 'active' | 'inactive' | 'cancelled';
@@ -33,7 +21,6 @@ export type Subscription = {
     price: number;
     currency: string;
     transactionRef?: string;
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
 };
 
 export type EmailAnalytics = {
@@ -44,8 +31,7 @@ export type EmailAnalytics = {
     bounced: number;
     opened: number;
     clickThroughRate: number;
-<<<<<<< HEAD
-    date: string; // ISO 8601 string
+    date: string | Timestamp;
 };
 
 export type Sender = {
@@ -58,7 +44,3 @@ export type Sender = {
     dmarcRecord: string;
     createdAt: any; // Firestore Timestamp
 }
-=======
-    date: string | Timestamp;
-};
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)

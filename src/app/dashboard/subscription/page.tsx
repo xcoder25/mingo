@@ -20,16 +20,11 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
-<<<<<<< HEAD
-import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
-=======
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, query, where, orderBy, limit } from 'firebase/firestore';
 import type { Subscription } from '@/lib/types';
 import { add } from 'date-fns';
 
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
 
 type Currency = {
   code: 'USD' | 'NGN' | 'GBP';
@@ -141,26 +136,6 @@ export default function SubscriptionPage() {
 
     const initializePayment = usePaystackPayment(config);
 
-<<<<<<< HEAD
-    const onSuccess = () => {
-      if (!user || !firestore) return;
-
-      const subscriptionRef = doc(firestore, `users/${user.uid}/subscriptions`, plan.id);
-      
-      const subscriptionData = {
-        id: plan.id,
-        userId: user.uid,
-        status: 'active',
-        planName: plan.name,
-        price: plan.priceUSD,
-        currency: selectedCurrency.code,
-        startDate: serverTimestamp(),
-        endDate: null, // or calculate based on subscription duration
-        createdAt: serverTimestamp(),
-      };
-      
-      setDocumentNonBlocking(subscriptionRef, subscriptionData, { merge: true });
-=======
     const onSuccess = (transaction: any) => {
         if (!user) return;
 
@@ -182,7 +157,6 @@ export default function SubscriptionPage() {
         };
 
         addDocumentNonBlocking(subscriptionsRef, newSubscription);
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
 
       toast({
         title: 'Payment Successful!',
@@ -191,14 +165,6 @@ export default function SubscriptionPage() {
     };
 
     const onClose = () => {
-<<<<<<< HEAD
-      console.log('closed');
-    };
-
-    return (
-      <Button className="w-full" onClick={() => initializePayment({onSuccess, onClose})}>
-        Choose Plan
-=======
       console.log('Payment dialog closed');
     };
 
@@ -209,7 +175,6 @@ export default function SubscriptionPage() {
         {plan.priceUSD > currentPlanPrice
           ? 'Upgrade'
           : plan.priceUSD < currentPlanPrice ? 'Downgrade' : 'Subscribe'}
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
       </Button>
     );
   };
@@ -248,12 +213,6 @@ export default function SubscriptionPage() {
             {plans.map((plan) => (
               <Card
                 key={plan.id}
-<<<<<<< HEAD
-                className="flex flex-col"
-              >
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-2">
-=======
                 className={`flex flex-col ${
                   plan.id === activeSubscription?.planId ? 'border-primary ring-2 ring-primary' : ''
                 }`}
@@ -263,7 +222,6 @@ export default function SubscriptionPage() {
                     {plan.id === activeSubscription?.planId && (
                       <Zap className="h-6 w-6 text-primary" />
                     )}
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
                     <CardTitle>{plan.name}</CardTitle>
                   </div>
                   <CardDescription>{plan.description}</CardDescription>
@@ -285,9 +243,6 @@ export default function SubscriptionPage() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-<<<<<<< HEAD
-                  <PaystackButton plan={plan} />
-=======
                   {plan.id === activeSubscription?.planId ? (
                     <Button variant="outline" className="w-full" disabled>
                       Current Plan
@@ -295,7 +250,6 @@ export default function SubscriptionPage() {
                   ) : (
                     <PaystackButton plan={plan} />
                   )}
->>>>>>> 5755eb8 (Redesign the dashboard, bring everything to realtime, users have to subs)
                 </CardFooter>
               </Card>
             ))}
