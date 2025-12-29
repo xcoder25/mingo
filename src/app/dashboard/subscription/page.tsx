@@ -21,8 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap, Map } from 'lucide-react';
 import { useUser, useFirestore, addDocumentNonBlocking, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, doc } from 'firebase/firestore';
-import type { UserProfile, EmailAnalytics } from '@/lib/types';
-import { subDays } from 'date-fns';
+import type { UserProfile } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { generateApiKey } from '@/ai/flows/generate-api-key-flow';
 
@@ -166,27 +165,6 @@ export default function SubscriptionPage() {
 
         // Set profile first
         setDocumentNonBlocking(userProfileRef, updatedProfile, { merge: true });
-
-        // Generate dummy data
-        const analyticsRef = collection(firestore, `users/${user.uid}/analytics`);
-        for (let i = 0; i < 7; i++) {
-            const date = subDays(new Date(), i);
-            const sent = Math.floor(Math.random() * (1500 - 500 + 1) + 500);
-            const delivered = sent - Math.floor(Math.random() * 50);
-            const bounced = sent - delivered;
-            const opened = Math.floor(delivered * (Math.random() * (0.4 - 0.2) + 0.2));
-            const clickThroughRate = Math.random() * (7 - 2) + 2;
-
-            const analyticsData: Omit<EmailAnalytics, 'id' | 'userId'> = {
-                sent,
-                delivered,
-                bounced,
-                opened,
-                clickThroughRate,
-                date: date.toISOString(),
-            };
-            addDocumentNonBlocking(analyticsRef, { userId: user.uid, ...analyticsData });
-        }
         
         const { key: apiKey } = await generateApiKey({name: `${plan.name} Initial Key`});
         

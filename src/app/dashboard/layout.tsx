@@ -22,6 +22,7 @@ import { useEffect } from 'react';
 import type { UserProfile } from '@/lib/types';
 import { plans } from '@/app/dashboard/subscription/page';
 import { Chatbot } from '@/components/chatbot';
+import { AnalyticsSimulator } from '@/components/analytics-simulator';
 
 export default function DashboardLayout({
   children,
@@ -121,6 +122,7 @@ export default function DashboardLayout({
         </header>
         <main className="flex-1 p-4 md:p-6 relative">
           {children}
+          {userProfile?.subscriptionStatus === 'active' && <AnalyticsSimulator />}
           <Chatbot />
         </main>
       </SidebarInset>
