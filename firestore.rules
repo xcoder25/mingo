@@ -16,10 +16,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get, list: if request.auth.uid == userId;
+      allow get, list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update, delete: if isExistingOwner(userId);
     }
 
     match /users/{userId}/analytics/{analyticsId} {
