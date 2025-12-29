@@ -19,6 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export interface Plan {
   id: string;
@@ -83,6 +92,9 @@ type Currency = keyof typeof currencyRates;
 
 export default function ProductsPage() {
   const [currency, setCurrency] = useState<Currency>('NGN');
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [email, setEmail] = useState('');
 
   const getPrice = (priceUSD: number) => {
     const rate = currencyRates[currency];
@@ -94,59 +106,61 @@ export default function ProductsPage() {
     }).format(price);
   };
 
-  const PayButton = ({ plan }: { plan: Plan }) => {
+  const handlePayment = (plan: Plan, customerEmail: string) => {
     const amount = plan.priceUSD * currencyRates[currency];
+    const checkout = (window as any).FlutterwaveCheckout;
+    if (checkout) {
+      checkout({
+        public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '',
+        tx_ref: `MingoSMTP-${Date.now()}-${Math.random()}`,
+        amount,
+        currency,
+        payment_options: 'card,mobilemoney,ussd',
+        customer: {
+          email: customerEmail,
+          name: 'Valued Customer',
+        },
+        customizations: {
+          title: 'MingoSMTP',
+          description: `Payment for ${plan.name}`,
+          logo: 'https://cdn.iconscout.com/icon/premium/png-256-thumb/mail-2533315-2122605.png',
+        },
+        callback: (response: any) => {
+          console.log('Payment successful. Response:', response);
+          if (response.status === 'successful') {
+            console.log('Generating credentials for successful payment...');
+            console.log('API Key: MINGO-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx');
+            console.log('SMTP Host: smtp.mingosmtp.com');
+            console.log('SMTP Port: 587');
+            alert('Payment successful! Check the browser console for your mock credentials.');
+          } else {
+            console.error('Payment was not successful. Status:', response.status);
+            alert('Payment was not successful. Please try again.');
+          }
+          if (checkout.close) {
+            checkout.close();
+          }
+          setIsEmailDialogOpen(false);
+          setEmail('');
+        },
+        onclose: () => {
+          console.log('Payment modal closed.');
+          setIsEmailDialogOpen(false);
+          setEmail('');
+        },
+      });
+    }
+  };
 
-    const handlePayment = () => {
-      const checkout = (window as any).FlutterwaveCheckout;
-      if (checkout) {
-        checkout({
-          public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '',
-          tx_ref: `MingoSMTP-${Date.now()}-${Math.random()}`,
-          amount,
-          currency,
-          payment_options: 'card,mobilemoney,ussd',
-          customer: {
-            email: 'customer@example.com', // This would be dynamic in a real app
-            phone_number: '08012345678',
-            name: 'John Doe',
-          },
-          customizations: {
-            title: 'MingoSMTP',
-            description: `Payment for ${plan.name}`,
-            logo: 'https://cdn.iconscout.com/icon/premium/png-256-thumb/mail-2533315-2122605.png',
-          },
-          callback: (response: any) => {
-            console.log('Payment successful. Response:', response);
-            if (response.status === 'successful') {
-                console.log('Generating credentials for successful payment...');
-                console.log('API Key: MINGO-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx');
-                console.log('SMTP Host: smtp.mingosmtp.com');
-                console.log('SMTP Port: 587');
-                alert('Payment successful! Check the browser console for your mock credentials.');
-            } else {
-                console.error('Payment was not successful. Status:', response.status);
-                alert('Payment was not successful. Please try again.');
-            }
-            if (checkout.close) {
-              checkout.close();
-            }
-          },
-          onclose: () => {
-            console.log('Payment modal closed.');
-          },
-        });
-      }
-    };
-  
-    return (
-      <Button
-        className="w-full"
-        onClick={handlePayment}
-      >
-        {plan.isOneTimePayment ? 'Purchase' : 'Subscribe'}
-      </Button>
-    );
+  const openEmailDialog = (plan: Plan) => {
+    setSelectedPlan(plan);
+    setIsEmailDialogOpen(true);
+  };
+
+  const handleProceedToPayment = () => {
+    if (selectedPlan && email) {
+      handlePayment(selectedPlan, email);
+    }
   };
 
 
@@ -203,12 +217,43 @@ export default function ProductsPage() {
                   </ul>
                 </CardContent>
                 <div className="p-6 pt-0">
-                   <PayButton plan={plan} />
+                  <Button className="w-full" onClick={() => openEmailDialog(plan)}>
+                    {plan.isOneTimePayment ? 'Purchase' : 'Subscribe'}
+                  </Button>
                 </div>
               </Card>
             ))}
           </div>
         </div>
+
+        <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Enter your email</DialogTitle>
+              <DialogDescription>
+                Please provide your email to proceed with the payment for {selectedPlan?.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="col-span-3"
+                  placeholder="name@example.com"
+                />
+              </div>
+            </div>
+            <Button onClick={handleProceedToPayment}>
+              Proceed to Payment
+            </Button>
+          </DialogContent>
+        </Dialog>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-muted-foreground">&copy; 2024 MingoSMTP. All rights reserved.</p>
