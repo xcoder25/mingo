@@ -20,9 +20,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Zap } from 'lucide-react';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, getDocs, query, where, limit, doc } from 'firebase/firestore';
-import type { Subscription } from '@/lib/types';
-import { add } from 'date-fns';
+import { collection, serverTimestamp, getDocs, query, where, orderBy, limit, doc } from 'firebase/firestore';
+import type { Subscription, EmailAnalytics } from '@/lib/types';
+import { add, subDays } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
 
@@ -190,13 +190,35 @@ export default function SubscriptionPage() {
           createdAt: serverTimestamp(),
         };
         await addDocumentNonBlocking(collection(firestore, `users/${user.uid}/apiKeys`), apiKeyData);
+
+        // 3. Add Dummy Analytics Data
+        const analyticsRef = collection(firestore, `users/${user.uid}/email_analytics`);
+        for (let i = 0; i < 7; i++) {
+            const date = subDays(new Date(), i);
+            const sent = Math.floor(Math.random() * (1500 - 500 + 1) + 500);
+            const delivered = sent - Math.floor(Math.random() * 50);
+            const bounced = sent - delivered;
+            const opened = Math.floor(delivered * (Math.random() * (0.4 - 0.2) + 0.2));
+            const clickThroughRate = Math.random() * (7 - 2) + 2;
+
+            const analyticsData: Omit<EmailAnalytics, 'id'> = {
+                userId: user.uid,
+                date: date.toISOString(),
+                sent,
+                delivered,
+                bounced,
+                opened,
+                clickThroughRate,
+            };
+            await addDocumentNonBlocking(analyticsRef, analyticsData);
+        }
         
         toast({
             title: 'Plan Activated!',
             description: `Your subscription to the ${plan.name} plan is now active.`,
         });
 
-        // 3. Redirect to the getting-started page
+        // 4. Redirect to the getting-started page
         router.push(`/dashboard/getting-started?plan=${plan.name}&apiKey=${apiKey}`);
     } else {
         toast({
