@@ -21,7 +21,9 @@ declare global {
 }
 
 export function handlePayment(details: PaymentDetails) {
-  if (!process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
+  const publicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY;
+  
+  if (!publicKey) {
     console.error('Flutterwave public key is not set.');
     alert('Payment gateway is not configured. Please contact support.');
     return;
@@ -30,7 +32,7 @@ export function handlePayment(details: PaymentDetails) {
   const tx_ref = `MingoSMTP-${Date.now()}-${Math.random()}`;
 
   window.FlutterwaveCheckout({
-    public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
+    public_key: publicKey,
     tx_ref,
     amount: details.amount,
     currency: details.currency,
