@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { encryptAES } from '@/lib/utils';
-import { FLW_ENCRYPTION_KEY } from '@/lib/flutterwave-config';
+import { FLW_PUBLIC_ENCRYPTION_KEY } from '@/lib/flutterwave-config';
 
 
 export interface Plan {
@@ -134,7 +134,7 @@ export default function ProductsPage() {
     setIsLoading(true);
 
     try {
-      const encryptionKey = FLW_ENCRYPTION_KEY;
+      const encryptionKey = FLW_PUBLIC_ENCRYPTION_KEY;
       if (!encryptionKey) {
         throw new Error('Payment gateway is not configured correctly.');
       }
